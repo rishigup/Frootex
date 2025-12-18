@@ -2,8 +2,21 @@ import { Link } from "react-router-dom";
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-50 border-t border-gray-200">
-      <div className="max-w-7xl mx-auto px-6 py-12">
+    <footer
+      className="relative overflow-hidden
+                 bg-gradient-to-b from-white via-green-50 to-white
+                 border-t border-gray-200"
+    >
+      {/* background blobs */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-24 -left-24 h-[300px] w-[300px] rounded-full bg-green-200/40 blur-3xl"></div>
+        <div className="absolute bottom-0 -right-24 h-[260px] w-[260px] rounded-full bg-emerald-200/40 blur-3xl"></div>
+      </div>
+
+      {/* subtle texture */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.08),_transparent_45%)]"></div>
+
+      <div className="relative max-w-7xl mx-auto px-6 py-16">
 
         {/* MAIN GRID */}
         <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4">
@@ -20,15 +33,9 @@ export default function Footer() {
 
             {/* SOCIAL */}
             <div className="mt-6 flex gap-4 text-gray-500">
-              <a href="#" className="hover:text-gray-900 transition">
-                🌐
-              </a>
-              <a href="#" className="hover:text-gray-900 transition">
-                🐦
-              </a>
-              <a href="#" className="hover:text-gray-900 transition">
-                💼
-              </a>
+              <a href="#" className="hover:text-gray-900 transition">🌐</a>
+              <a href="#" className="hover:text-gray-900 transition">🐦</a>
+              <a href="#" className="hover:text-gray-900 transition">💼</a>
             </div>
           </div>
 

@@ -26,8 +26,21 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md"> {/* ⬅ increased */}
+    <section
+      className="relative min-h-screen flex items-center justify-center
+                 bg-gradient-to-b from-white via-green-50 to-white px-4"
+    >
+      {/* background blobs */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-24 -left-24 h-[360px] w-[360px] rounded-full bg-green-200/40 blur-3xl"></div>
+        <div className="absolute top-1/3 -right-24 h-[300px] w-[300px] rounded-full bg-emerald-200/40 blur-3xl"></div>
+        <div className="absolute bottom-0 left-1/4 h-[260px] w-[260px] rounded-full bg-lime-200/30 blur-3xl"></div>
+      </div>
+
+      {/* subtle texture */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.08),_transparent_45%)]"></div>
+
+      <div className="relative w-full max-w-md">
 
         {/* Back to home */}
         <Link
@@ -40,7 +53,7 @@ export default function Login() {
         </Link>
 
         {/* Card */}
-        <div className="bg-white border rounded-xl shadow-sm p-8"> {/* ⬅ increased */}
+        <div className="bg-white/80 backdrop-blur border rounded-xl shadow-lg p-8">
 
           {/* Header */}
           <div className="mb-6 text-center">
@@ -113,6 +126,6 @@ export default function Login() {
 
         </div>
       </div>
-    </div>
+    </section>
   );
 }
