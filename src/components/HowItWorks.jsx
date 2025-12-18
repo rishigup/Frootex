@@ -1,22 +1,36 @@
+import {
+  Leaf,
+  ShoppingCart,
+  Truck,
+  CheckCircle,
+  ArrowRight,
+} from "lucide-react";
+
 export default function HowItWorks() {
   const steps = [
     {
       step: "01",
       title: "Farmers List Produce",
       description:
-        "Farmers onboard and publish fruit availability with quality, quantity, and pricing details.",
+        "Farmers onboard and list fresh produce with quality, quantity, and pricing details.",
+      benefit: "Direct market access & fair pricing",
+      icon: Leaf,
     },
     {
       step: "02",
       title: "Buyers Discover & Order",
       description:
-        "Buyers explore verified produce, compare options, and place orders with confidence.",
+        "Buyers explore verified listings, compare suppliers, and place orders confidently.",
+      benefit: "Transparent sourcing & trusted supply",
+      icon: ShoppingCart,
     },
     {
       step: "03",
       title: "Smart Logistics & Delivery",
       description:
-        "Optimized logistics ensure traceable, timely delivery from farm to destination.",
+        "Optimized logistics with real-time tracking ensure timely delivery from farm to market.",
+      benefit: "Predictable delivery & reduced losses",
+      icon: Truck,
     },
   ];
 
@@ -25,7 +39,8 @@ export default function HowItWorks() {
       {/* ================= HOW IT WORKS ================= */}
       <section
         id="how"
-        className="relative overflow-hidden bg-gradient-to-b from-white via-green-50 to-white"
+        className="relative overflow-hidden
+                   bg-gradient-to-b from-white via-green-50 to-white"
       >
         {/* background blobs */}
         <div className="absolute inset-0 pointer-events-none">
@@ -34,80 +49,100 @@ export default function HowItWorks() {
           <div className="absolute bottom-0 left-1/4 h-[260px] w-[260px] rounded-full bg-lime-200/30 blur-3xl" />
         </div>
 
-        {/* subtle texture */}
+        {/* texture */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.08),_transparent_45%)]" />
 
         <div className="relative max-w-7xl mx-auto px-6 py-28">
-          {/* Header */}
+
+          {/* HEADER */}
           <div className="max-w-2xl">
             <p className="text-sm font-medium text-green-700 uppercase tracking-wide">
               How It Works
             </p>
 
             <h2 className="mt-3 text-3xl font-semibold text-gray-900">
-              Designed as a Clear, Connected Flow
+              A Simple Flow. Powerful Outcomes.
             </h2>
 
             <p className="mt-4 text-lg text-gray-600">
-              Every participant operates on a shared workflow — reducing friction,
-              improving trust, and increasing efficiency.
+              FrooteX connects every stakeholder through a unified, transparent
+              workflow — from farm to final delivery.
             </p>
           </div>
 
-          {/* Timeline */}
-          <div className="mt-20 relative">
-            {/* central line */}
-            <div className="hidden md:block absolute left-1/2 top-0 h-full w-px bg-gray-200" />
-
-            <div className="space-y-20">
-              {steps.map((item, index) => (
+          {/* STEPS */}
+          <div className="mt-20 grid gap-10 md:grid-cols-3">
+            {steps.map((item, index) => {
+              const Icon = item.icon;
+              return (
                 <div
                   key={index}
-                  className={`relative grid md:grid-cols-2 gap-12 items-center ${
-                    index % 2 === 0 ? "" : "md:text-right"
-                  }`}
+                  className="group relative rounded-2xl
+                             bg-white/80 backdrop-blur
+                             border border-gray-200
+                             p-8 transition-all duration-300
+                             hover:-translate-y-2
+                             hover:shadow-xl"
                 >
-                  {/* Content */}
+                  {/* Step badge */}
+                  <div className="absolute -top-4 -right-4
+                                  bg-green-600 text-white
+                                  rounded-lg px-3 py-1 text-sm font-semibold">
+                    Step {item.step}
+                  </div>
+
+                  {/* Icon */}
                   <div
-                    className={`p-8 rounded-2xl border bg-white/80 backdrop-blur shadow-sm
-                    transition hover:bg-white hover:shadow-md
-                    ${index % 2 === 0 ? "md:mr-20" : "md:ml-20 md:order-2"}`}
+                    className="mb-5 flex h-12 w-12 items-center justify-center
+                               rounded-xl bg-green-100 text-green-600
+                               group-hover:bg-green-600
+                               group-hover:text-white transition"
                   >
-                    <div className="text-sm font-semibold text-green-600">
-                      Step {item.step}
-                    </div>
-
-                    <h3 className="mt-2 text-xl font-semibold text-gray-900">
-                      {item.title}
-                    </h3>
-
-                    <p className="mt-3 text-sm text-gray-600 leading-relaxed">
-                      {item.description}
-                    </p>
+                    <Icon className="h-6 w-6" />
                   </div>
 
-                  {/* Timeline node */}
-                  <div className="hidden md:flex justify-center">
-                    <div className="w-4 h-4 rounded-full bg-green-600 ring-8 ring-green-100" />
+                  {/* Title */}
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {item.title}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="mt-3 text-sm text-gray-600 leading-relaxed">
+                    {item.description}
+                  </p>
+
+                  {/* Benefit */}
+                  <div className="mt-6 flex items-center gap-2 text-sm font-medium text-green-700">
+                    <CheckCircle className="h-4 w-4" />
+                    {item.benefit}
                   </div>
+
+                  {/* hover bar */}
+                  <div
+                    className="absolute bottom-0 left-0 h-[3px] w-0
+                               bg-green-600 transition-all duration-300
+                               group-hover:w-full rounded-b-2xl"
+                  />
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* ================= BLACK VALUE SECTION ================= */}
+      {/* ================= VALUE / TRUST SECTION ================= */}
       <section className="bg-black text-white">
         <div className="max-w-7xl mx-auto px-6 py-24">
+
+          {/* Heading */}
           <div className="max-w-3xl">
             <h2 className="text-3xl font-semibold">
-              One Platform. Every Stakeholder Connected.
+              One Platform. Every Stakeholder Aligned.
             </h2>
 
             <p className="mt-4 text-lg text-gray-400">
-              FrooteX aligns farmers, buyers, MSMEs, and logistics partners
-              through a transparent, data-driven supply chain.
+              FrooteX removes inefficiencies, middlemen, and guesswork from
+              the fruit supply chain — replacing them with trust and data.
             </p>
           </div>
 
@@ -116,8 +151,8 @@ export default function HowItWorks() {
             {[
               ["3×", "Faster Order Fulfillment"],
               ["100%", "Traceable Supply Chain"],
-              ["24/7", "Real-Time Market Access"],
-              ["Transparency", "Reduced Middlemen"],
+              ["24/7", "Live Market Access"],
+              ["Lower Losses", "Optimized Logistics"],
             ].map(([value, label], i) => (
               <div key={i}>
                 <p className="text-4xl font-semibold text-green-500">
@@ -132,15 +167,16 @@ export default function HowItWorks() {
           <div className="mt-20 flex flex-col sm:flex-row items-start sm:items-center gap-6">
             <a
               href="/signup"
-              className="inline-flex items-center justify-center
+              className="inline-flex items-center gap-2
                          bg-green-600 text-white px-8 py-4 rounded-lg
                          text-base font-semibold hover:bg-green-700 transition"
             >
               Get Started on FrooteX
+              <ArrowRight className="h-5 w-5" />
             </a>
 
             <p className="text-sm text-gray-400 max-w-md">
-              Join a smarter, transparent fruit supply ecosystem built for scale.
+              Build smarter supply chains with transparency and trust.
             </p>
           </div>
         </div>
