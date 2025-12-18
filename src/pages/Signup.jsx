@@ -19,7 +19,6 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      // 1️⃣ Create user in Firebase Auth
       const result = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -28,7 +27,6 @@ export default function Signup() {
 
       const user = result.user;
 
-      // 2️⃣ Store role in Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
@@ -36,9 +34,7 @@ export default function Signup() {
         createdAt: serverTimestamp(),
       });
 
-      // 3️⃣ Redirect to Home
       navigate("/");
-
     } catch (error) {
       alert(error.message);
       setLoading(false);
@@ -47,35 +43,36 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-md"> {/* ⬅ increased */}
 
         {/* Back to Home */}
         <Link
           to="/"
-          className="mb-4 inline-block text-sm text-gray-600 hover:text-gray-900"
+          className="mb-6 inline-block text-base text-gray-600 hover:text-gray-900"
         >
           ← Back to home
         </Link>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h2 className="text-xl font-semibold text-center text-gray-900">
+        <div className="bg-white p-8 rounded-xl shadow-sm border"> {/* ⬅ increased */}
+          <h2 className="text-2xl font-semibold text-center text-gray-900">
             Create Account
           </h2>
-          <p className="text-sm text-center text-gray-600 mt-1">
+
+          <p className="text-base text-center text-gray-600 mt-2">
             Join FrooteX
           </p>
 
-          <form onSubmit={handleSignup} className="mt-5 space-y-4">
+          <form onSubmit={handleSignup} className="mt-6 space-y-5">
 
             {/* Role */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-base font-medium text-gray-700">
                 Role
               </label>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="mt-1 w-full border rounded-md px-3 py-2 text-sm"
+                className="mt-2 w-full border rounded-md px-4 py-3 text-base"
               >
                 <option>Farmer</option>
                 <option>Buyer</option>
@@ -85,7 +82,7 @@ export default function Signup() {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-base font-medium text-gray-700">
                 Email
               </label>
               <input
@@ -93,13 +90,13 @@ export default function Signup() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full border rounded-md px-3 py-2 text-sm"
+                className="mt-2 w-full border rounded-md px-4 py-3 text-base"
               />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-base font-medium text-gray-700">
                 Password
               </label>
               <input
@@ -107,7 +104,7 @@ export default function Signup() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full border rounded-md px-3 py-2 text-sm"
+                className="mt-2 w-full border rounded-md px-4 py-3 text-base"
               />
             </div>
 
@@ -115,15 +112,15 @@ export default function Signup() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-600 text-white py-2 rounded-md
-                         text-sm font-semibold hover:bg-green-700
+              className="w-full bg-green-600 text-white py-3 rounded-md
+                         text-base font-semibold hover:bg-green-700
                          disabled:opacity-60"
             >
               {loading ? "Creating..." : "Create Account"}
             </button>
           </form>
 
-          <p className="mt-4 text-center text-sm text-gray-600">
+          <p className="mt-5 text-center text-base text-gray-600">
             Already have an account?{" "}
             <Link to="/login" className="text-green-600 font-medium">
               Sign in
