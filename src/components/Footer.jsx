@@ -2,24 +2,37 @@ import { Link } from "react-router-dom";
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t">
-      <div className="max-w-7xl mx-auto px-6 py-5">
-        
-        {/* Main Grid */}
-        <div className="grid gap-12 md:grid-cols-4">
-          
-          {/* Brand */}
+    <footer className="bg-gray-50 border-t border-gray-200">
+      <div className="max-w-7xl mx-auto px-6 py-12">
+
+        {/* MAIN GRID */}
+        <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4">
+
+          {/* BRAND */}
           <div>
-            <h3 className="text-xl font-semibold text-gray-900">
+            <h3 className="text-2xl font-bold text-gray-900">
               FrooteX
             </h3>
-            <p className="mt-4 text-sm text-gray-600 leading-relaxed max-w-sm">
-              FrooteX is a modern agri-tech platform designed to bring transparency,
-              efficiency, and trust to the fruit supply chain.
+            <p className="mt-4 text-sm text-gray-600 leading-relaxed">
+              A modern agri-tech platform bringing transparency, efficiency,
+              and trust to the fruit supply chain.
             </p>
+
+            {/* SOCIAL */}
+            <div className="mt-6 flex gap-4 text-gray-500">
+              <a href="#" className="hover:text-gray-900 transition">
+                🌐
+              </a>
+              <a href="#" className="hover:text-gray-900 transition">
+                🐦
+              </a>
+              <a href="#" className="hover:text-gray-900 transition">
+                💼
+              </a>
+            </div>
           </div>
 
-          {/* Platform */}
+          {/* PLATFORM */}
           <div>
             <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
               Platform
@@ -43,7 +56,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Company */}
+          {/* COMPANY */}
           <div>
             <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
               Company
@@ -67,7 +80,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Access */}
+          {/* ACCESS */}
           <div>
             <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
               Access
@@ -81,18 +94,18 @@ export default function Footer() {
                   Login
                 </Link>
               </li>
-              <li>
-                <span className="text-gray-400 cursor-default">
-                  Dashboard (Coming Soon)
-                </span>
+              <li className="text-gray-400 cursor-default">
+                Dashboard (Coming Soon)
               </li>
             </ul>
           </div>
 
         </div>
 
-        {/* Bottom Bar */}
-        <div className="mt-16 pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* BOTTOM BAR */}
+        <div className="mt-12 pt-6 border-t border-gray-200
+                        flex flex-col sm:flex-row items-center justify-between gap-4">
+
           <p className="text-sm text-gray-500">
             © {new Date().getFullYear()} FrooteX. All rights reserved.
           </p>
