@@ -24,6 +24,8 @@ export default function FarmerDashboard() {
   const navigate = useNavigate();
   const [allowed, setAllowed] = useState(false);
   const [active, setActive] = useState("My Products");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
 
 useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -900,17 +902,45 @@ useEffect(() => {
       </div>
 
       {/* SIDEBAR */}
-<aside className="w-64 fixed inset-y-0 z-20
-                  bg-white/80 backdrop-blur-xl
-                  border-r border-green-100
-                  flex flex-col">
+      {/* MOBILE TOGGLE BUTTON */}
+<button
+  onClick={() => setIsSidebarOpen(true)}
+  className="md:hidden fixed top-4 left-4 z-30
+             bg-white border shadow rounded-lg
+             p-2 text-gray-700"
+>
+  ☰
+</button>
 
+<aside
+  className={`fixed inset-y-0 left-0 z-20 w-64
+    bg-white/80 backdrop-blur-xl
+    border-r border-green-100
+    flex flex-col
+    transform transition-transform duration-300
+    ${
+      isSidebarOpen
+        ? "translate-x-0"
+        : "-translate-x-full md:translate-x-0"
+    }`}
+>
   {/* LOGO */}
-  <div className="px-6 py-5 border-b border-green-100">
-    <img src={logo} alt="FrooteX" className="h-8" />
-    <p className="text-xs text-gray-400 mt-1">
-      Farmer Dashboard
-    </p>
+  <div className="px-6 py-5 border-b border-green-100
+                  flex items-center justify-between">
+    <div>
+      <img src={logo} alt="FrooteX" className="h-8" />
+      <p className="text-xs text-gray-400 mt-1">
+        Farmer Dashboard
+      </p>
+    </div>
+
+    {/* CLOSE BUTTON (mobile) */}
+    <button
+      onClick={() => setIsSidebarOpen(false)}
+      className="md:hidden text-gray-500 text-xl"
+    >
+      ✕
+    </button>
   </div>
 
   {/* NAV */}
@@ -921,7 +951,10 @@ useEffect(() => {
       return (
         <button
           key={name}
-          onClick={() => setActive(name)}
+          onClick={() => {
+            setActive(name);
+            setIsSidebarOpen(false); // 🔥 AUTO HIDE HERE
+          }}
           className={`relative w-full flex items-center gap-3
             px-4 py-2.5 rounded-xl text-sm font-medium
             transition-all duration-200
@@ -947,6 +980,8 @@ useEffect(() => {
       );
     })}
   </nav>
+</aside>
+
 
   {/* FOOTER */}
 <div className="px-6 py-5 border-t border-green-100 bg-white/60">
@@ -990,25 +1025,15 @@ useEffect(() => {
 </aside>
 
 
-     {/* MAIN */}
-<main
-  className="ml-0 md:ml-64 flex-1
-             px-4 sm:px-6 lg:px-10
-             py-6 sm:py-8
-             relative z-10"
->
-  <div
-    className="max-w-7xl mx-auto
-               bg-white/80 backdrop-blur-xl
-               rounded-3xl
-               shadow-lg
-               border border-green-100
-               p-4 sm:p-6 lg:p-10"
-  >
-    {renderContent()}
-  </div>
-</main>
+      {/* MAIN */}
+      <main className="ml-64 flex-1 p-10 relative z-10">
+        <main className="ml-64 flex-1 p-10 relative z-10">
 
+        <div className="bg-white/80 backdrop-blur rounded-3xl
+                        shadow-xl border border-green-100 p-10">
+          {renderContent()}
+        </div>
+      </main>
     </div>
   );
 }
