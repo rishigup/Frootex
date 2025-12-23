@@ -2,11 +2,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../firebase/firebase";
+import logo from "../assets/frootex-logo.png";
+
 import {
   Menu,
   X,
   LogOut,
-  User,
   ChevronDown,
 } from "lucide-react";
 
@@ -55,11 +56,12 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
 
         {/* LOGO */}
-        <Link
-          to="/"
-          className="text-xl font-bold tracking-tight text-gray-900"
-        >
-          FrooteX
+        <Link to="/" className="flex items-center">
+          <img
+            src={logo}
+            alt="FrooteX Logo"
+            className="h-9 md:h-10 w-auto object-contain"
+          />
         </Link>
 
         {/* DESKTOP NAV */}
@@ -122,7 +124,10 @@ export default function Navbar() {
                   <div className="px-4 py-3 text-sm text-gray-600 border-b">
                     {user.email}
                   </div>
-
+                  <div className="w-full flex items-center gap-2 px-4 py-3
+text-sm text-gray-700 hover:bg-gray-50">                      <a href="/farmer"><button>Dashboard</button></a>
+</div>
+<hr />
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-2 px-4 py-3
@@ -130,6 +135,8 @@ export default function Navbar() {
                   >
                     <LogOut className="w-4 h-4" />
                     Logout
+                    <div>
+                    </div>
                   </button>
                 </div>
               )}

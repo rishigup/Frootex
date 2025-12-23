@@ -13,17 +13,31 @@ export default function Footer() {
   return (
     <footer
       className="relative overflow-hidden
-                 bg-gradient-to-b from-white via-green-50 to-white
+                 bg-gradient-to-b
+                 from-[#FFF7CC]   /* mango */
+                 via-[#FFE4C7]    /* peach */
+                 to-white
                  border-t border-gray-200"
     >
-      {/* background blobs */}
+      {/* ================= FRUITY BLOBS ================= */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-24 -left-24 h-[300px] w-[300px] rounded-full bg-green-200/40 blur-3xl" />
-        <div className="absolute bottom-0 -right-24 h-[260px] w-[260px] rounded-full bg-emerald-200/40 blur-3xl" />
+        {/* Lemon */}
+        <div className="absolute -top-24 -left-24 h-[300px] w-[300px]
+                        rounded-full bg-yellow-300/40 blur-3xl" />
+
+        {/* Apple */}
+        <div className="absolute bottom-0 -right-24 h-[260px] w-[260px]
+                        rounded-full bg-red-400/30 blur-3xl" />
+
+        {/* Leaf */}
+        <div className="absolute top-1/3 right-1/3 h-[240px] w-[240px]
+                        rounded-full bg-green-400/25 blur-3xl" />
       </div>
 
-      {/* texture */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.08),_transparent_45%)]" />
+      {/* ================= JUICY TEXTURE ================= */}
+      <div className="absolute inset-0
+        bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.10),_transparent_45%)]"
+      />
 
       <div className="relative max-w-7xl mx-auto px-6 py-20">
 
@@ -35,7 +49,7 @@ export default function Footer() {
             <h3 className="text-2xl font-bold text-gray-900">
               FrooteX
             </h3>
-            <p className="mt-4 text-sm text-gray-600 leading-relaxed max-w-md">
+            <p className="mt-4 text-sm text-gray-700 leading-relaxed max-w-md">
               FrooteX is a modern agri-tech platform connecting farmers,
               buyers, MSMEs, and logistics partners through a transparent,
               data-driven fruit supply chain.
@@ -45,21 +59,24 @@ export default function Footer() {
             <div className="mt-6 flex gap-4">
               <a
                 href="#"
-                className="p-2 rounded-md border bg-white hover:bg-green-50 transition"
+                className="p-2 rounded-md border bg-white
+                           hover:bg-green-50 transition"
               >
                 <Globe className="h-4 w-4 text-gray-700" />
               </a>
               <a
                 href="#"
-                className="p-2 rounded-md border bg-white hover:bg-green-50 transition"
+                className="p-2 rounded-md border bg-white
+                           hover:bg-green-50 transition"
               >
                 <Twitter className="h-4 w-4 text-gray-700" />
               </a>
               <a
-                 href="https://www.linkedin.com/company/frootex/"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="p-2 rounded-md border bg-white hover:bg-green-50 transition"
+                href="https://www.linkedin.com/company/frootex/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-md border bg-white
+                           hover:bg-green-50 transition"
               >
                 <Linkedin className="h-4 w-4 text-gray-700" />
               </a>
@@ -71,11 +88,11 @@ export default function Footer() {
             <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
               Platform
             </h4>
-            <ul className="mt-4 space-y-3 text-sm text-gray-600">
-              <li><a href="#features" className="hover:text-gray-900">Features</a></li>
-              <li><a href="#how" className="hover:text-gray-900">How It Works</a></li>
-              <li><a href="#" className="hover:text-gray-900">Solutions</a></li>
-              <li><a href="#" className="hover:text-gray-900">Pricing</a></li>
+            <ul className="mt-4 space-y-3 text-sm text-gray-700">
+              <li><a href="#features" className="hover:text-green-700">Features</a></li>
+              <li><a href="#how" className="hover:text-green-700">How It Works</a></li>
+              <li><a href="#" className="hover:text-green-700">Solutions</a></li>
+              <li><a href="#" className="hover:text-green-700">Pricing</a></li>
             </ul>
           </div>
 
@@ -84,11 +101,11 @@ export default function Footer() {
             <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
               Company
             </h4>
-            <ul className="mt-4 space-y-3 text-sm text-gray-600">
-              <li><a href="#" className="hover:text-gray-900">About Us</a></li>
-              <li><a href="#" className="hover:text-gray-900">Careers</a></li>
-              <li><a href="#" className="hover:text-gray-900">Contact</a></li>
-              <li><a href="#" className="hover:text-gray-900">Blog</a></li>
+            <ul className="mt-4 space-y-3 text-sm text-gray-700">
+              <li><a href="#" className="hover:text-green-700">About Us</a></li>
+              <li><a href="#" className="hover:text-green-700">Careers</a></li>
+              <li><a href="#" className="hover:text-green-700">Contact</a></li>
+              <li><a href="#" className="hover:text-green-700">Blog</a></li>
             </ul>
           </div>
 
@@ -98,7 +115,7 @@ export default function Footer() {
               Contact
             </h4>
 
-            <ul className="mt-4 space-y-4 text-sm text-gray-600">
+            <ul className="mt-4 space-y-4 text-sm text-gray-700">
               <li className="flex gap-3">
                 <MapPin className="h-4 w-4 text-green-600 mt-0.5" />
                 <span>India · Serving PAN-India Markets</span>
@@ -120,9 +137,9 @@ export default function Footer() {
                         border-t border-gray-200 pt-10">
           <div>
             <h4 className="text-lg font-semibold text-gray-900">
-              Stay updated
+              Stay updated 🍎
             </h4>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-gray-700">
               Get product updates, market insights, and platform news.
             </p>
           </div>
@@ -131,7 +148,9 @@ export default function Footer() {
             <input
               type="email"
               placeholder="Enter your email"
-              className="flex-1 rounded-l-md border border-gray-300 px-4 py-3 text-sm focus:outline-none"
+              className="flex-1 rounded-l-md border
+                         border-gray-300 px-4 py-3 text-sm
+                         focus:outline-none"
             />
             <button
               type="submit"
@@ -146,7 +165,8 @@ export default function Footer() {
         </div>
 
         {/* BOTTOM BAR */}
-        <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="mt-12 flex flex-col sm:flex-row
+                        items-center justify-between gap-4">
           <p className="text-sm text-gray-500">
             © {new Date().getFullYear()} FrooteX. All rights reserved.
           </p>

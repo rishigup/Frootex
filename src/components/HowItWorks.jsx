@@ -40,17 +40,30 @@ export default function HowItWorks() {
       <section
         id="how"
         className="relative overflow-hidden
-                   bg-gradient-to-b from-white via-green-50 to-white"
+                   bg-gradient-to-b
+                   from-[#FFF7CC]   /* mango */
+                   via-[#FFE4C7]    /* peach */
+                   to-white"
       >
-        {/* background blobs */}
+        {/* ================= FRUITY BLOBS ================= */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-24 -left-24 h-[360px] w-[360px] rounded-full bg-green-200/40 blur-3xl" />
-          <div className="absolute top-1/3 -right-24 h-[300px] w-[300px] rounded-full bg-emerald-200/40 blur-3xl" />
-          <div className="absolute bottom-0 left-1/4 h-[260px] w-[260px] rounded-full bg-lime-200/30 blur-3xl" />
+          {/* Lemon */}
+          <div className="absolute -top-24 -left-24 h-[360px] w-[360px]
+                          rounded-full bg-yellow-300/40 blur-3xl" />
+
+          {/* Apple */}
+          <div className="absolute top-1/3 -right-24 h-[300px] w-[300px]
+                          rounded-full bg-red-400/30 blur-3xl" />
+
+          {/* Leaf */}
+          <div className="absolute bottom-0 left-1/4 h-[260px] w-[260px]
+                          rounded-full bg-green-400/30 blur-3xl" />
         </div>
 
-        {/* texture */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.08),_transparent_45%)]" />
+        {/* ================= JUICY TEXTURE ================= */}
+        <div className="absolute inset-0
+          bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.10),_transparent_45%)]"
+        />
 
         <div className="relative max-w-7xl mx-auto px-6 py-28">
 
@@ -64,7 +77,7 @@ export default function HowItWorks() {
               A Simple Flow. Powerful Outcomes.
             </h2>
 
-            <p className="mt-4 text-lg text-gray-600">
+            <p className="mt-4 text-lg text-gray-700">
               FrooteX connects every stakeholder through a unified, transparent
               workflow — from farm to final delivery.
             </p>
@@ -78,7 +91,7 @@ export default function HowItWorks() {
                 <div
                   key={index}
                   className="group relative rounded-2xl
-                             bg-white/80 backdrop-blur
+                             bg-white/85 backdrop-blur
                              border border-gray-200
                              p-8 transition-all duration-300
                              hover:-translate-y-2
@@ -112,7 +125,8 @@ export default function HowItWorks() {
                   </p>
 
                   {/* Benefit */}
-                  <div className="mt-6 flex items-center gap-2 text-sm font-medium text-green-700">
+                  <div className="mt-6 flex items-center gap-2
+                                  text-sm font-medium text-green-700">
                     <CheckCircle className="h-4 w-4" />
                     {item.benefit}
                   </div>
@@ -134,7 +148,6 @@ export default function HowItWorks() {
       <section className="bg-black text-white">
         <div className="max-w-7xl mx-auto px-6 py-24">
 
-          {/* Heading */}
           <div className="max-w-3xl">
             <h2 className="text-3xl font-semibold">
               One Platform. Every Stakeholder Aligned.
@@ -146,7 +159,6 @@ export default function HowItWorks() {
             </p>
           </div>
 
-          {/* Stats */}
           <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-10">
             {[
               ["3×", "Faster Order Fulfillment"],
@@ -163,13 +175,15 @@ export default function HowItWorks() {
             ))}
           </div>
 
-          {/* CTA */}
-          <div className="mt-20 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+          <div className="mt-20 flex flex-col sm:flex-row
+                          items-start sm:items-center gap-6">
             <a
               href="/signup"
               className="inline-flex items-center gap-2
-                         bg-green-600 text-white px-8 py-4 rounded-lg
-                         text-base font-semibold hover:bg-green-700 transition"
+                         bg-green-600 text-white
+                         px-8 py-4 rounded-lg
+                         text-base font-semibold
+                         hover:bg-green-700 transition"
             >
               Get Started on FrooteX
               <ArrowRight className="h-5 w-5" />
