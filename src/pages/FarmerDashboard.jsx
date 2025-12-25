@@ -1,46 +1,110 @@
 import { useEffect, useState } from "react";
-import { auth, db } from "../firebase/firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import {
   Leaf,
   Package,
-  Wallet,   
+  Wallet,
   LineChart,
   History,
   UserCircle,
   Store,
+  Home,
   ArrowLeft,
-  Plus, 
-  Edit,
+  Plus,
   Trash2,
-  Eye,
+  Edit,
+  Upload,
+  Menu,
+  X,
 } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../firebase/firebase";
 import logo from "../assets/frootex-logo.png";
 
 export default function FarmerDashboard() {
-  
   const navigate = useNavigate();
-  const [allowed, setAllowed] = useState(false);
-  const [active, setActive] = useState("My Products");
 
+  /* ================= STATES ================= */
+  const [loading, setLoading] = useState(true);
+  const [active, setActive] = useState("My Products");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [products, setProducts] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const [productForm, setProductForm] = useState({
+    name: "",
+    quantity: "",
+    price: "",
+    image: null,
+  });
+
+  /* ================= AUTH ================= */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) return navigate("/login");
 
       const snap = await getDoc(doc(db, "users", user.uid));
-      if (snap.exists() && snap.data().role === "Farmer") {
-        setAllowed(true);
-      } else {
+      if (!snap.exists() || snap.data().role !== "Farmer") {
         navigate("/");
       }
+      setLoading(false);
     });
+
     return () => unsub();
   }, [navigate]);
 
-  if (!allowed) return null;
+  /* ================= CRUD ================= */
+  const saveProduct = () => {
+    if (!productForm.name) return;
 
+    if (editingId) {
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === editingId ? { ...p, ...productForm } : p
+        )
+      );
+    } else {
+      setProducts((prev) => [
+        ...prev,
+        { id: Date.now(), ...productForm },
+      ]);
+    }
+
+    setProductForm({ name: "", quantity: "", price: "", image: null });
+    setEditingId(null);
+    setShowModal(false);
+  };
+
+  const editProduct = (p) => {
+    setProductForm(p);
+    setEditingId(p.id);
+    setShowModal(true);
+  };
+
+  const deleteProduct = (id) => {
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  /* ================= LOADING ================= */
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center
+                      bg-gradient-to-br from-green-50 to-green-100">
+        <div className="bg-white/70 backdrop-blur p-8 rounded-2xl shadow-xl">
+          <div className="w-10 h-10 border-4 border-green-200
+                          border-t-green-600 rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-sm text-gray-600 text-center">
+            Verifying Farmer Access...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ================= MENU ================= */
   const menu = [
     { name: "My Products", icon: Leaf },
     { name: "Orders", icon: Package },
@@ -51,801 +115,1089 @@ export default function FarmerDashboard() {
     { name: "Buyer Portfolio View", icon: Store },
   ];
 
-  /* ---------------- CONTENT PER SECTION ---------------- */
-
-  const SectionHeader = ({ title, action }) => (
-    <div className="flex items-center justify-between mb-6">
-      <h2 className="text-2xl font-semibold text-gray-800">{title}</h2>
-      {action}
-    </div>
-  );
-
+  /* ================= CONTENT ================= */
   const renderContent = () => {
     switch (active) {
-      /* ---------------- MY PRODUCTS ---------------- */
-     case "My Products":
+      case "My Products":
   return (
     <>
       {/* HEADER */}
-      <SectionHeader
-        title="My Products"
-        action={
-          <button
-            className="flex items-center gap-2 px-5 py-2.5
-                       bg-green-600 text-white rounded-lg text-sm font-medium
-                       hover:bg-green-700 transition shadow"
-          >
-            <Plus className="w-4 h-4" />
-            Add New Product
-          </button>
-        }
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-xl md:text-2xl font-semibold text-gray-800">
+            My Products
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Manage your crops and products listed for buyers
+          </p>
+        </div>
+
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2
+                     bg-green-600 hover:bg-green-700
+                     text-white px-4 py-2 rounded-xl
+                     text-sm shadow"
+        >
+          <Plus size={16} /> Add Product
+        </button>
+      </div>
+
+      {/* SUMMARY STATS (DUMMY DATA) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Total Products</p>
+          <h3 className="text-xl font-semibold text-gray-800 mt-1">
+            {products.length || 5}
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Active Listings</p>
+          <h3 className="text-xl font-semibold text-green-600 mt-1">
+            4
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Avg. Price</p>
+          <h3 className="text-xl font-semibold text-gray-800 mt-1">
+            ₹42 / kg
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Buyer Interest</p>
+          <h3 className="text-xl font-semibold text-blue-600 mt-1">
+            High
+          </h3>
+        </div>
+      </div>
 
       {/* PRODUCT GRID */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-
-        {/* PRODUCT CARD */}
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="group bg-white rounded-2xl border
-                       shadow-sm hover:shadow-lg transition overflow-hidden"
+      {products.length === 0 ? (
+        <div className="bg-white/80 backdrop-blur
+                        rounded-3xl p-10 text-center shadow">
+          <p className="text-gray-600 mb-4">
+            You haven’t added any products yet.
+          </p>
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-2
+                       bg-green-600 text-white
+                       px-5 py-2 rounded-xl text-sm"
           >
-            {/* IMAGE */}
-            <div className="h-36 bg-gradient-to-br from-green-100 to-yellow-100
-                            flex items-center justify-center">
-              <Leaf className="w-10 h-10 text-green-600" />
-            </div>
+            <Plus size={16} /> Add Your First Product
+          </button>
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((p) => (
+            <div
+              key={p.id}
+              className="bg-white/80 backdrop-blur
+                         rounded-2xl shadow-lg p-5
+                         hover:shadow-xl transition"
+            >
+              {p.image && (
+                <img
+                  src={URL.createObjectURL(p.image)}
+                  className="h-32 w-full object-cover rounded-xl mb-3"
+                />
+              )}
 
-            {/* CONTENT */}
-            <div className="p-5">
-              <div className="flex items-start justify-between">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Apple
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-semibold text-gray-800">
+                  {p.name}
                 </h3>
-
-                {/* STATUS */}
-                <span className="px-2.5 py-1 text-xs font-medium
-                                 rounded-full bg-green-100 text-green-700">
-                  Available
+                <span className="text-xs px-2 py-1
+                                 bg-green-100 text-green-700
+                                 rounded-full">
+                  Active
                 </span>
               </div>
 
-              <div className="mt-3 space-y-1 text-sm text-gray-600">
-                <p>Quantity: <span className="font-medium">500 kg</span></p>
-                <p>Price: <span className="font-medium">₹60 / kg</span></p>
-                <p>Harvest: <span className="font-medium">Mar 2025</span></p>
-              </div>
+              <p className="text-sm text-gray-600">
+                Quantity: <span className="font-medium">{p.quantity}</span>
+              </p>
+              <p className="text-sm text-gray-600">
+                Price: <span className="font-medium">{p.price}</span>
+              </p>
 
-              {/* ACTIONS */}
-              <div className="mt-5 flex items-center justify-between">
+              <div className="flex justify-between items-center mt-5">
                 <button
-                  className="flex items-center gap-1.5 text-sm
-                             text-blue-600 hover:text-blue-700"
+                  onClick={() => editProduct(p)}
+                  className="text-blue-600 text-sm flex items-center gap-1"
                 >
-                  <Edit className="w-4 h-4" />
-                  Edit
+                  <Edit size={14} /> Edit
                 </button>
-
-                <div className="flex gap-3">
-                  <button
-                    className="text-sm text-yellow-600 hover:text-yellow-700"
-                  >
-                    Disable
-                  </button>
-
-                  <button
-                    className="flex items-center gap-1 text-sm
-                               text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </>
-  );
-      /* ---------------- ORDERS ---------------- */
-      case "Orders":
-  return (
-    <>
-      {/* HEADER */}
-      <SectionHeader title="Orders" />
-
-      {/* ORDERS LIST */}
-      <div className="space-y-6">
-
-        {/* ORDER CARD */}
-        {[1, 2].map((i) => (
-          <div
-            key={i}
-            className="bg-white border rounded-2xl p-6
-                       shadow-sm hover:shadow-lg transition"
-          >
-            {/* TOP ROW */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">
-                  Order ID: <span className="font-medium">#ORD-10{i}</span>
-                </p>
-                <h3 className="text-lg font-semibold text-gray-800 mt-1">
-                  Vishal Traders
-                </h3>
-              </div>
-
-              {/* STATUS */}
-              <span
-                className="px-3 py-1 rounded-full text-xs font-medium
-                           bg-yellow-100 text-yellow-700"
-              >
-                Pending
-              </span>
-            </div>
-
-            {/* ORDER DETAILS */}
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4
-                            text-sm text-gray-600">
-              <div>
-                <p className="text-xs uppercase text-gray-400">Product</p>
-                <p className="font-medium text-gray-800">Apple</p>
-              </div>
-
-              <div>
-                <p className="text-xs uppercase text-gray-400">Quantity</p>
-                <p className="font-medium text-gray-800">200 kg</p>
-              </div>
-
-              <div>
-                <p className="text-xs uppercase text-gray-400">Price</p>
-                <p className="font-medium text-gray-800">₹120 / kg</p>
-              </div>
-
-              <div>
-                <p className="text-xs uppercase text-gray-400">Expected Delivery</p>
-                <p className="font-medium text-gray-800">25 Mar 2025</p>
-              </div>
-            </div>
-
-            {/* ACTIONS */}
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex gap-3">
                 <button
-                  className="px-4 py-2 text-sm font-medium
-                             bg-green-600 text-white rounded-lg
-                             hover:bg-green-700 transition"
+                  onClick={() => deleteProduct(p.id)}
+                  className="text-red-600 text-sm flex items-center gap-1"
                 >
-                  Accept Order
+                  <Trash2 size={14} /> Delete
                 </button>
-
-                <button
-                  className="px-4 py-2 text-sm font-medium
-                             bg-red-100 text-red-700 rounded-lg
-                             hover:bg-red-200 transition"
-                >
-                  Reject
-                </button>
-              </div>
-
-              <button
-                className="text-sm text-blue-600 hover:text-blue-700
-                           font-medium"
-              >
-                View Details
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </>
-  );
-
-
-      /* ---------------- EARNINGS ---------------- */
-      case "Earnings":
-  return (
-    <>
-      {/* HEADER */}
-      <SectionHeader
-        title="Earnings"
-        action={
-          <button
-            className="px-4 py-2 text-sm font-medium
-                       bg-gray-900 text-white rounded-lg
-                       hover:bg-gray-800 transition"
-          >
-            Download Report
-          </button>
-        }
-      />
-
-      {/* SUMMARY CARDS */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="bg-white border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">Total Earnings</p>
-            <Wallet className="w-5 h-5 text-green-600" />
-          </div>
-          <p className="mt-3 text-3xl font-bold text-green-700">
-            ₹1,25,000
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            All time earnings
-          </p>
-        </div>
-
-        <div className="bg-white border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">Received</p>
-            <LineChart className="w-5 h-5 text-blue-600" />
-          </div>
-          <p className="mt-3 text-3xl font-bold text-blue-700">
-            ₹1,07,000
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            Payments completed
-          </p>
-        </div>
-
-        <div className="bg-white border rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">Pending</p>
-            <Package className="w-5 h-5 text-yellow-600" />
-          </div>
-          <p className="mt-3 text-3xl font-bold text-yellow-700">
-            ₹18,000
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            Awaiting settlement
-          </p>
-        </div>
-      </div>
-
-      {/* BREAKDOWN */}
-      <div className="mt-10 bg-white border rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          Earnings by Product
-        </h3>
-
-        <div className="space-y-4 text-sm">
-          <div className="flex justify-between">
-            <span>Mango</span>
-            <span className="font-medium">₹55,000</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Apple</span>
-            <span className="font-medium">₹42,000</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Banana</span>
-            <span className="font-medium">₹28,000</span>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
-
-      /* ---------------- MARKET PRICES ---------------- */
-     case "Market Prices":
-  return (
-    <>
-      {/* HEADER */}
-      <SectionHeader title="Market Prices" />
-
-      <div className="grid gap-8 lg:grid-cols-3">
-
-        {/* LEFT: PRICE LIST */}
-        <div className="lg:col-span-2 space-y-4">
-          {[
-            { crop: "Mango", price: "₹65 / kg", trend: "up" },
-            { crop: "Apple", price: "₹110 / kg", trend: "down" },
-            { crop: "Banana", price: "₹38 / kg", trend: "up" },
-          ].map((item) => (
-            <div
-              key={item.crop}
-              className="flex items-center justify-between
-                         p-5 bg-white border rounded-2xl shadow-sm"
-            >
-              <div>
-                <p className="text-sm text-gray-500">Crop</p>
-                <p className="text-lg font-semibold text-gray-800">
-                  {item.crop}
-                </p>
-              </div>
-
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Market Price</p>
-                <p
-                  className={`text-lg font-semibold ${
-                    item.trend === "up"
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {item.price} {item.trend === "up" ? "↑" : "↓"}
-                </p>
               </div>
             </div>
           ))}
         </div>
+      )}
+    </>
+  );
 
-        {/* RIGHT: POLL & INSIGHTS */}
-        <div className="space-y-6">
+  case "Orders":
+  return (
+    <>
+      {/* HEADER */}
+      <div className="mb-6">
+        <h2 className="text-xl md:text-2xl font-semibold text-gray-800">
+          Orders
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Track orders placed by buyers for your products
+        </p>
+      </div>
 
-          {/* POLL */}
-          <div className="bg-white border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              📊 Farmer Poll
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              When mango prices rise, what do you prefer?
-            </p>
+      {/* ORDER SUMMARY (DUMMY STATS) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Total Orders</p>
+          <h3 className="text-xl font-semibold text-gray-800 mt-1">
+            12
+          </h3>
+        </div>
 
-            <div className="space-y-3">
-              <button className="w-full px-4 py-2 rounded-lg border
-                                 hover:bg-green-50 text-sm">
-                Sell Immediately
-              </button>
-              <button className="w-full px-4 py-2 rounded-lg border
-                                 hover:bg-yellow-50 text-sm">
-                Wait for Better Price
-              </button>
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Pending</p>
+          <h3 className="text-xl font-semibold text-yellow-600 mt-1">
+            3
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Completed</p>
+          <h3 className="text-xl font-semibold text-green-600 mt-1">
+            9
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Total Revenue</p>
+          <h3 className="text-xl font-semibold text-blue-600 mt-1">
+            ₹48,500
+          </h3>
+        </div>
+      </div>
+
+      {/* ORDER LIST */}
+      <div className="space-y-5">
+        {/* ORDER CARD */}
+        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg p-6">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <h3 className="font-semibold text-gray-800">
+                Order #ORD-1023
+              </h3>
+              <p className="text-sm text-gray-500">
+                Buyer: Patna Wholesale Market
+              </p>
             </div>
 
-            <p className="text-xs text-gray-400 mt-3">
-              Poll results update in real time.
+            <span className="text-xs px-3 py-1 rounded-full
+                             bg-yellow-100 text-yellow-700">
+              Pending
+            </span>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4 text-sm text-gray-600">
+            <p>
+              Product: <span className="font-medium">Apple</span>
+            </p>
+            <p>
+              Quantity: <span className="font-medium">200 kg</span>
+            </p>
+            <p>
+              Price: <span className="font-medium">₹60 / kg</span>
             </p>
           </div>
 
-          {/* SMART SUGGESTION */}
-          <div className="bg-green-50 border border-green-200
-                          rounded-2xl p-6">
-            <h3 className="text-lg font-semibold text-green-700 mb-2">
-              💡 Smart Suggestion
-            </h3>
-            <p className="text-sm text-green-800">
-              Mango demand is increasing in nearby markets.
-              Selling within the next 3–5 days may maximize profit.
+          <div className="flex justify-between items-center mt-4">
+            <p className="text-xs text-gray-400">
+              Ordered on: 12 Aug 2025
             </p>
+
+            <button
+              className="text-sm text-green-600 font-medium hover:underline"
+            >
+              Mark as Completed
+            </button>
+          </div>
+        </div>
+
+        {/* ORDER CARD */}
+        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg p-6">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <h3 className="font-semibold text-gray-800">
+                Order #ORD-1018
+              </h3>
+              <p className="text-sm text-gray-500">
+                Buyer: Delhi Fruit Traders
+              </p>
+            </div>
+
+            <span className="text-xs px-3 py-1 rounded-full
+                             bg-green-100 text-green-700">
+              Completed
+            </span>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4 text-sm text-gray-600">
+            <p>
+              Product: <span className="font-medium">Banana</span>
+            </p>
+            <p>
+              Quantity: <span className="font-medium">500 kg</span>
+            </p>
+            <p>
+              Price: <span className="font-medium">₹28 / kg</span>
+            </p>
+          </div>
+
+          <div className="flex justify-between items-center mt-4">
+            <p className="text-xs text-gray-400">
+              Delivered on: 08 Aug 2025
+            </p>
+
+            <span className="text-xs text-gray-500">
+              Payment Received
+            </span>
           </div>
         </div>
       </div>
     </>
   );
 
-
-      /* ---------------- HARVEST HISTORY ---------------- */
-      case "Harvest History":
+  case "Earnings":
   return (
     <>
       {/* HEADER */}
-      <SectionHeader
-        title="Harvest History"
-        action={
-          <button
-            className="flex items-center gap-2 px-4 py-2
-                       bg-green-600 text-white rounded-lg text-sm
-                       hover:bg-green-700 transition"
-          >
-            <Plus className="w-4 h-4" />
-            Add Harvest
-          </button>
-        }
-      />
+      <div className="mb-6">
+        <h2 className="text-xl md:text-2xl font-semibold text-gray-800">
+          Earnings
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Overview of your income from sold products
+        </p>
+      </div>
+
+      {/* EARNINGS SUMMARY (DUMMY DATA) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Total Earnings</p>
+          <h3 className="text-xl font-semibold text-green-700 mt-1">
+            ₹1,24,500
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">This Month</p>
+          <h3 className="text-xl font-semibold text-blue-600 mt-1">
+            ₹32,800
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Pending Payments</p>
+          <h3 className="text-xl font-semibold text-yellow-600 mt-1">
+            ₹8,200
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Avg. Monthly</p>
+          <h3 className="text-xl font-semibold text-gray-800 mt-1">
+            ₹27,000
+          </h3>
+        </div>
+      </div>
+
+      {/* EARNINGS BREAKDOWN */}
+      <div className="grid md:grid-cols-2 gap-6 mb-8">
+        {/* PRODUCT WISE */}
+        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg p-6">
+          <h3 className="font-semibold text-gray-800 mb-4">
+            Earnings by Product
+          </h3>
+
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span>Apple</span>
+              <span className="font-medium">₹52,000</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Banana</span>
+              <span className="font-medium">₹38,500</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Mango</span>
+              <span className="font-medium">₹34,000</span>
+            </div>
+          </div>
+        </div>
+
+        {/* MONTHLY TREND */}
+        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg p-6">
+          <h3 className="font-semibold text-gray-800 mb-4">
+            Monthly Earnings Trend
+          </h3>
+
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span>June</span>
+              <span className="font-medium">₹22,400</span>
+            </div>
+            <div className="flex justify-between">
+              <span>July</span>
+              <span className="font-medium">₹29,300</span>
+            </div>
+            <div className="flex justify-between">
+              <span>August</span>
+              <span className="font-medium text-green-700">
+                ₹32,800 ↑
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* RECENT PAYMENTS */}
+      <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg p-6">
+        <h3 className="font-semibold text-gray-800 mb-4">
+          Recent Payments
+        </h3>
+
+        <div className="space-y-4 text-sm">
+          <div className="flex justify-between">
+            <div>
+              <p className="font-medium">Order #ORD-1018</p>
+              <p className="text-gray-500">Delhi Fruit Traders</p>
+            </div>
+            <span className="font-semibold text-green-700">
+              + ₹14,000
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <div>
+              <p className="font-medium">Order #ORD-1023</p>
+              <p className="text-gray-500">Patna Wholesale Market</p>
+            </div>
+            <span className="font-semibold text-yellow-600">
+              + ₹8,200 (Pending)
+            </span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+case "Market Prices":
+  return (
+    <>
+      {/* HEADER */}
+      <div className="mb-6">
+        <h2 className="text-xl md:text-2xl font-semibold text-gray-800">
+          Market Prices
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Latest mandi prices to help you sell at the right time
+        </p>
+      </div>
+
+      {/* MARKET SUMMARY */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Market Status</p>
+          <h3 className="text-lg font-semibold text-green-700 mt-1">
+            Open
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Trending Crop</p>
+          <h3 className="text-lg font-semibold text-blue-600 mt-1">
+            Apple 🍎
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Highest Demand</p>
+          <h3 className="text-lg font-semibold text-yellow-600 mt-1">
+            Banana 🍌
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Last Updated</p>
+          <h3 className="text-sm font-medium text-gray-800 mt-1">
+            Today, 10:30 AM
+          </h3>
+        </div>
+      </div>
+
+      {/* PRICE TABLE */}
+      <div className="bg-white/80 backdrop-blur rounded-3xl shadow-lg overflow-hidden">
+        <div className="grid grid-cols-4 bg-green-50 p-4 text-sm font-medium text-gray-700">
+          <span>Crop</span>
+          <span>Mandi</span>
+          <span>Price (₹ / kg)</span>
+          <span>Trend</span>
+        </div>
+
+        {/* ROW */}
+        <div className="grid grid-cols-4 p-4 text-sm border-t">
+          <span className="font-medium">Apple</span>
+          <span>Patna</span>
+          <span className="font-semibold text-green-700">
+            ₹62
+          </span>
+          <span className="text-green-600">▲ Rising</span>
+        </div>
+
+        <div className="grid grid-cols-4 p-4 text-sm border-t">
+          <span className="font-medium">Banana</span>
+          <span>Muzaffarpur</span>
+          <span className="font-semibold text-gray-800">
+            ₹28
+          </span>
+          <span className="text-red-600">▼ Falling</span>
+        </div>
+
+        <div className="grid grid-cols-4 p-4 text-sm border-t">
+          <span className="font-medium">Mango</span>
+          <span>Bhagalpur</span>
+          <span className="font-semibold text-green-700">
+            ₹55
+          </span>
+          <span className="text-green-600">▲ Rising</span>
+        </div>
+
+        <div className="grid grid-cols-4 p-4 text-sm border-t">
+          <span className="font-medium">Papaya</span>
+          <span>Gaya</span>
+          <span className="font-semibold text-gray-800">
+            ₹32
+          </span>
+          <span className="text-gray-500">— Stable</span>
+        </div>
+      </div>
 
       {/* INSIGHT CARD */}
-      <div className="mb-6 bg-green-50 border border-green-200
-                      rounded-2xl p-5">
-        <p className="text-sm text-green-700 font-medium">
-          🌾 Insight
+      <div className="mt-8 bg-green-50 rounded-2xl p-6">
+        <h3 className="font-semibold text-green-800 mb-2">
+          Market Insight
+        </h3>
+        <p className="text-sm text-green-700">
+          Apple and Mango prices are trending upward this week.
+          Consider listing your stock now to maximize profits.
         </p>
-        <p className="text-sm text-green-800 mt-1">
-          Mango has been your most profitable crop over the last 6 months.
-        </p>
-      </div>
-
-      {/* HARVEST TIMELINE */}
-      <div className="space-y-4">
-
-        {/* HARVEST ITEM */}
-        <div className="bg-white border rounded-2xl p-5 shadow-sm
-                        hover:shadow-md transition">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800">
-                Mango
-              </h3>
-              <p className="text-sm text-gray-500">
-                Harvested on 18 March 2025
-              </p>
-            </div>
-
-            <span className="px-3 py-1 rounded-full text-xs
-                             bg-green-100 text-green-700 font-medium">
-              Completed
-            </span>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4
-                          text-sm">
-            <div>
-              <p className="text-xs uppercase text-gray-400">Quantity</p>
-              <p className="font-medium text-gray-800">800 kg</p>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase text-gray-400">Season</p>
-              <p className="font-medium text-gray-800">Summer</p>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase text-gray-400">Quality</p>
-              <p className="font-medium text-gray-800">Grade A</p>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase text-gray-400">Market Value</p>
-              <p className="font-medium text-gray-800">₹52,000</p>
-            </div>
-          </div>
-        </div>
-
-        {/* SECOND ITEM */}
-        <div className="bg-white border rounded-2xl p-5 shadow-sm
-                        hover:shadow-md transition">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800">
-                Apple
-              </h3>
-              <p className="text-sm text-gray-500">
-                Harvested on 05 February 2025
-              </p>
-            </div>
-
-            <span className="px-3 py-1 rounded-full text-xs
-                             bg-blue-100 text-blue-700 font-medium">
-              Completed
-            </span>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4
-                          text-sm">
-            <div>
-              <p className="text-xs uppercase text-gray-400">Quantity</p>
-              <p className="font-medium text-gray-800">600 kg</p>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase text-gray-400">Season</p>
-              <p className="font-medium text-gray-800">Winter</p>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase text-gray-400">Quality</p>
-              <p className="font-medium text-gray-800">Grade B</p>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase text-gray-400">Market Value</p>
-              <p className="font-medium text-gray-800">₹48,000</p>
-            </div>
-          </div>
-        </div>
       </div>
     </>
   );
-
-
-      /* ---------------- FARMER PROFILE ---------------- */
-      case "Farmer Profile":
+case "Harvest History":
   return (
     <>
       {/* HEADER */}
-      <SectionHeader
-        title="Farmer Profile"
-        action={
-          <button
-            className="flex items-center gap-2 px-4 py-2
-                       bg-blue-600 text-white rounded-lg text-sm
-                       hover:bg-blue-700 transition"
-          >
-            <Edit className="w-4 h-4" />
-            Edit Profile
-          </button>
-        }
-      />
+      <div className="mb-6">
+        <h2 className="text-xl md:text-2xl font-semibold text-gray-800">
+          Harvest History
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Track past harvests, yields, and performance over time
+        </p>
+      </div>
 
-      {/* PROFILE CARD */}
-      <div className="mt-6 bg-white border rounded-3xl shadow-sm p-8">
+      {/* SUMMARY STATS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Total Harvests</p>
+          <h3 className="text-xl font-semibold text-gray-800 mt-1">
+            18
+          </h3>
+        </div>
 
-        {/* TOP INFO */}
-        <div className="flex flex-col md:flex-row gap-6">
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Best Yield</p>
+          <h3 className="text-xl font-semibold text-green-700 mt-1">
+            1,200 kg
+          </h3>
+        </div>
 
-          {/* FARMER AVATAR */}
-          <div className="w-28 h-28 rounded-2xl bg-green-100
-                          flex items-center justify-center
-                          text-3xl font-bold text-green-700">
-            R
-          </div>
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Avg. Quality</p>
+          <h3 className="text-xl font-semibold text-blue-700 mt-1">
+            Grade A
+          </h3>
+        </div>
 
-          {/* BASIC DETAILS */}
-          <div className="flex-1">
-            <h3 className="text-2xl font-semibold text-gray-800">
-              Rishabh kr. Gupta
-            </h3>
-            <p className="text-gray-600 mt-1">
-              Organic Fruit Farmer • Patna, Bihar
-            </p>
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Total Revenue</p>
+          <h3 className="text-xl font-semibold text-gray-800 mt-1">
+            ₹2,10,000
+          </h3>
+        </div>
+      </div>
 
-            {/* RATING */}
-            <div className="flex items-center gap-2 mt-3">
-              <span className="px-3 py-1 rounded-full
-                               bg-green-100 text-green-700 text-sm font-medium">
-                ⭐ 4.6 / 5
-              </span>
-              <span className="text-sm text-gray-500">
-                (128 buyer ratings)
-              </span>
+      {/* HARVEST LIST */}
+      <div className="space-y-6">
+        {/* HARVEST CARD */}
+        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg p-6">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <h3 className="font-semibold text-gray-800">
+                Apple Harvest – Summer 2025
+              </h3>
+              <p className="text-sm text-gray-500">
+                Harvest Date: 05 Aug 2025
+              </p>
             </div>
-          </div>
-        </div>
 
-        {/* FARM DETAILS */}
-        <div className="mt-8 grid md:grid-cols-2 gap-6">
-
-          <div>
-            <p className="text-sm text-gray-500 uppercase">
-              Farm Details
-            </p>
-            <p className="mt-2 text-gray-700 text-sm leading-relaxed">
-              12+ years of experience in fruit farming.
-              Specializes in mango, banana, and apple cultivation using
-              sustainable and organic practices.
-            </p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-500 uppercase">
-              Delivery & Capacity
-            </p>
-            <ul className="mt-2 text-sm text-gray-700 space-y-1">
-              <li>📦 Avg Supply Capacity: 1–2 tons / week</li>
-              <li>🚚 Delivery Radius: 200 km</li>
-              <li>⏱ Avg Dispatch Time: 24–48 hrs</li>
-            </ul>
-          </div>
-        </div>
-
-        {/* CERTIFICATIONS */}
-        <div className="mt-8">
-          <p className="text-sm text-gray-500 uppercase mb-3">
-            Certifications
-          </p>
-          <div className="flex gap-3 flex-wrap">
-            <span className="px-4 py-1 rounded-full
-                             bg-green-50 text-green-700 text-sm">
-              🌿 Organic Certified
-            </span>
-            <span className="px-4 py-1 rounded-full
-                             bg-blue-50 text-blue-700 text-sm">
-              FSSAI Registered
+            <span className="text-xs px-3 py-1 rounded-full
+                             bg-green-100 text-green-700">
+              Completed
             </span>
           </div>
-        </div>
 
-        {/* AVAILABLE PRODUCE */}
-        <div className="mt-8">
-          <p className="text-sm text-gray-500 uppercase mb-3">
-            Available Produce
-          </p>
-
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="border rounded-xl p-4">
-              <p className="font-medium">Mango</p>
-              <p className="text-sm text-gray-600">₹60 / kg</p>
-            </div>
-            <div className="border rounded-xl p-4">
-              <p className="font-medium">Banana</p>
-              <p className="text-sm text-gray-600">₹35 / kg</p>
-            </div>
-            <div className="border rounded-xl p-4">
-              <p className="font-medium">Apple</p>
-              <p className="text-sm text-gray-600">₹120 / kg</p>
-            </div>
+          <div className="grid md:grid-cols-4 gap-4 text-sm text-gray-600">
+            <p>
+              Quantity: <span className="font-medium">800 kg</span>
+            </p>
+            <p>
+              Quality: <span className="font-medium">Grade A</span>
+            </p>
+            <p>
+              Sold At: <span className="font-medium">₹60 / kg</span>
+            </p>
+            <p>
+              Revenue: <span className="font-medium">₹48,000</span>
+            </p>
           </div>
+
+          <p className="text-xs text-gray-400 mt-4">
+            Notes: High demand due to premium quality apples.
+          </p>
         </div>
 
-        {/* TRUST NOTE */}
-        <div className="mt-10 bg-green-50 border border-green-200
-                        rounded-2xl p-5">
-          <p className="text-sm text-green-800">
-            ✅ Buyers trust this farmer for consistent quality,
-            timely delivery, and transparent pricing.
+        {/* HARVEST CARD */}
+        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg p-6">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <h3 className="font-semibold text-gray-800">
+                Banana Harvest – Monsoon 2025
+              </h3>
+              <p className="text-sm text-gray-500">
+                Harvest Date: 18 Jul 2025
+              </p>
+            </div>
+
+            <span className="text-xs px-3 py-1 rounded-full
+                             bg-blue-100 text-blue-700">
+              Completed
+            </span>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-4 text-sm text-gray-600">
+            <p>
+              Quantity: <span className="font-medium">1,200 kg</span>
+            </p>
+            <p>
+              Quality: <span className="font-medium">Grade B+</span>
+            </p>
+            <p>
+              Sold At: <span className="font-medium">₹28 / kg</span>
+            </p>
+            <p>
+              Revenue: <span className="font-medium">₹33,600</span>
+            </p>
+          </div>
+
+          <p className="text-xs text-gray-400 mt-4">
+            Notes: Slight price drop due to excess market supply.
+          </p>
+        </div>
+
+        {/* HARVEST CARD */}
+        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg p-6">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <h3 className="font-semibold text-gray-800">
+                Mango Harvest – Summer 2024
+              </h3>
+              <p className="text-sm text-gray-500">
+                Harvest Date: 02 Jun 2024
+              </p>
+            </div>
+
+            <span className="text-xs px-3 py-1 rounded-full
+                             bg-yellow-100 text-yellow-700">
+              Archived
+            </span>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-4 text-sm text-gray-600">
+            <p>
+              Quantity: <span className="font-medium">950 kg</span>
+            </p>
+            <p>
+              Quality: <span className="font-medium">Grade A</span>
+            </p>
+            <p>
+              Sold At: <span className="font-medium">₹52 / kg</span>
+            </p>
+            <p>
+              Revenue: <span className="font-medium">₹49,400</span>
+            </p>
+          </div>
+
+          <p className="text-xs text-gray-400 mt-4">
+            Notes: Strong seasonal demand resulted in good pricing.
           </p>
         </div>
       </div>
     </>
   );
-
-
-      /* ---------------- BUYER VIEW ---------------- */
-      case "Buyer Portfolio View":
+case "Buyer Portfolio View":
   return (
     <>
       {/* HEADER */}
-      <SectionHeader title="Buyer Portfolio" />
-
-      {/* INFO NOTE */}
-      <div className="mb-6 bg-blue-50 border border-blue-200
-                      rounded-2xl p-5">
-        <p className="text-sm text-blue-800">
-          👥 Browse verified buyers and MSMEs. Choose whom to sell based on
-          ratings, demand, and payment reliability.
+      <div className="mb-6">
+        <h2 className="text-xl md:text-2xl font-semibold text-gray-800">
+          Buyer Profiles
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">
+          View verified buyers interested in purchasing your products
         </p>
+      </div>
+
+      {/* BUYER SUMMARY */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Total Buyers</p>
+          <h3 className="text-xl font-semibold text-gray-800 mt-1">
+            8
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Verified Buyers</p>
+          <h3 className="text-xl font-semibold text-green-700 mt-1">
+            6
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Active Orders</p>
+          <h3 className="text-xl font-semibold text-blue-700 mt-1">
+            3
+          </h3>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur rounded-2xl p-4 shadow">
+          <p className="text-xs text-gray-500">Trust Level</p>
+          <h3 className="text-xl font-semibold text-purple-700 mt-1">
+            High
+          </h3>
+        </div>
       </div>
 
       {/* BUYER LIST */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* BUYER CARD */}
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="bg-white border rounded-2xl p-6 shadow-sm
-                       hover:shadow-lg transition"
-          >
-            {/* TOP */}
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  GreenFresh Traders
-                </h3>
-                <p className="text-sm text-gray-500">
-                  Wholesaler • Delhi NCR
-                </p>
-              </div>
-
-              {/* RATING */}
-              <span className="px-3 py-1 rounded-full
-                               bg-green-100 text-green-700
-                               text-sm font-medium">
-                ⭐ 4.7
-              </span>
+        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold">
+              PM
             </div>
-
-            {/* BUYER STATS */}
-            <div className="mt-4 space-y-2 text-sm text-gray-700">
-              <p>📦 Avg Purchase: 1.5 tons / month</p>
-              <p>💰 Payment Reliability: <span className="font-medium text-green-600">High</span></p>
-              <p>⏱ Avg Payment Time: 3–5 days</p>
-            </div>
-
-            {/* INTEREST */}
-            <div className="mt-4">
-              <p className="text-xs uppercase text-gray-400 mb-1">
-                Interested Crops
+            <div>
+              <h3 className="font-semibold text-gray-800">
+                Patna Wholesale Market
+              </h3>
+              <p className="text-sm text-gray-500">
+                Bihar
               </p>
-              <div className="flex gap-2 flex-wrap">
-                <span className="px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs">
-                  Mango
-                </span>
-                <span className="px-3 py-1 rounded-full bg-yellow-50 text-yellow-700 text-xs">
-                  Banana
-                </span>
-              </div>
-            </div>
-
-            {/* ACTIONS */}
-            <div className="mt-6 flex items-center justify-between">
-              <button
-                className="text-sm text-blue-600 hover:text-blue-700
-                           font-medium"
-              >
-                View Profile
-              </button>
-
-              <button
-                className="px-3 py-1.5 text-sm
-                           bg-green-600 text-white rounded-lg
-                           hover:bg-green-700 transition"
-              >
-                Sell to Buyer
-              </button>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* TRUST LEGEND */}
-      <div className="mt-10 grid md:grid-cols-3 gap-4 text-sm">
-        <div className="bg-white border rounded-xl p-4">
-          ⭐ Rating reflects buyer reliability & reviews
+          <div className="space-y-2 text-sm text-gray-600">
+            <p>
+              Interested Crop: <span className="font-medium">Apple</span>
+            </p>
+            <p>
+              Buying Capacity: <span className="font-medium">500+ kg</span>
+            </p>
+            <p>
+              Avg. Price Offered: <span className="font-medium">₹58/kg</span>
+            </p>
+          </div>
+
+          <div className="flex justify-between items-center mt-5">
+            <span className="text-xs px-3 py-1 rounded-full bg-green-100 text-green-700">
+              Verified
+            </span>
+            <button className="text-sm text-green-600 font-medium hover:underline">
+              View Details
+            </button>
+          </div>
         </div>
-        <div className="bg-white border rounded-xl p-4">
-          💰 Payment reliability based on past transactions
+
+        {/* BUYER CARD */}
+        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+              DF
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800">
+                Delhi Fruit Traders
+              </h3>
+              <p className="text-sm text-gray-500">
+                Delhi
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2 text-sm text-gray-600">
+            <p>
+              Interested Crop: <span className="font-medium">Banana</span>
+            </p>
+            <p>
+              Buying Capacity: <span className="font-medium">1,000+ kg</span>
+            </p>
+            <p>
+              Avg. Price Offered: <span className="font-medium">₹30/kg</span>
+            </p>
+          </div>
+
+          <div className="flex justify-between items-center mt-5">
+            <span className="text-xs px-3 py-1 rounded-full bg-green-100 text-green-700">
+              Verified
+            </span>
+            <button className="text-sm text-green-600 font-medium hover:underline">
+              View Details
+            </button>
+          </div>
         </div>
-        <div className="bg-white border rounded-xl p-4">
-          📦 Purchase volume shows buyer capacity
+
+        {/* BUYER CARD */}
+        <div className="bg-white/80 backdrop-blur rounded-2xl shadow-lg p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 font-bold">
+              GF
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800">
+                Gaya Fruit Hub
+              </h3>
+              <p className="text-sm text-gray-500">
+                Bihar
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2 text-sm text-gray-600">
+            <p>
+              Interested Crop: <span className="font-medium">Mango</span>
+            </p>
+            <p>
+              Buying Capacity: <span className="font-medium">300+ kg</span>
+            </p>
+            <p>
+              Avg. Price Offered: <span className="font-medium">₹54/kg</span>
+            </p>
+          </div>
+
+          <div className="flex justify-between items-center mt-5">
+            <span className="text-xs px-3 py-1 rounded-full bg-yellow-100 text-yellow-700">
+              New Buyer
+            </span>
+            <button className="text-sm text-green-600 font-medium hover:underline">
+              View Details
+            </button>
+          </div>
         </div>
       </div>
     </>
+  );
+
+     case "Farmer Profile":
+  return (
+    <div className="max-w-4xl mx-auto
+                    bg-white/80 backdrop-blur
+                    rounded-3xl shadow-xl p-8">
+
+      {/* HEADER */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold text-gray-800">
+          Farmer Profile
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">
+          This profile will be visible to buyers and marketplaces
+        </p>
+      </div>
+
+      {/* PHOTOS */}
+      <div className="grid md:grid-cols-2 gap-6 mb-8">
+        {/* Farmer Photo */}
+        <label className="border-2 border-dashed rounded-2xl
+                          p-6 text-center cursor-pointer
+                          hover:bg-gray-50 transition">
+          <Upload className="mx-auto mb-2 text-green-600" />
+          <p className="font-medium text-gray-700">
+            Upload Farmer Photo
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            Builds trust with buyers
+          </p>
+          <input type="file" hidden />
+        </label>
+
+        {/* Farm Photo */}
+        <label className="border-2 border-dashed rounded-2xl
+                          p-6 text-center cursor-pointer
+                          hover:bg-gray-50 transition">
+          <Upload className="mx-auto mb-2 text-green-600" />
+          <p className="font-medium text-gray-700">
+            Upload Farm Photo
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            Show your farm & crop quality
+          </p>
+          <input type="file" hidden />
+        </label>
+      </div>
+
+      {/* BASIC DETAILS */}
+      <div className="grid md:grid-cols-3 gap-4 mb-6">
+        <input
+          className="border p-3 rounded-xl"
+          placeholder="Farmer Name"
+        />
+        <input
+          className="border p-3 rounded-xl"
+          placeholder="Farm Location (Village, State)"
+        />
+        <input
+          className="border p-3 rounded-xl"
+          placeholder="Experience (e.g. 10 years)"
+        />
+      </div>
+
+      {/* FARM DETAILS */}
+      <div className="grid md:grid-cols-2 gap-4 mb-6">
+        <input
+          className="border p-3 rounded-xl"
+          placeholder="Primary Crops (e.g. Apple, Banana)"
+        />
+        <select className="border p-3 rounded-xl">
+          <option>Farming Type</option>
+          <option>Organic Farming</option>
+          <option>Natural Farming</option>
+          <option>Traditional Farming</option>
+        </select>
+      </div>
+
+      {/* ABOUT FARMER */}
+      <div className="mb-8">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          About the Farmer
+        </label>
+        <textarea
+          rows="4"
+          className="w-full border p-3 rounded-xl"
+          placeholder="Tell buyers about your farming journey, quality practices, and why they should buy from you..."
+        />
+      </div>
+
+      {/* TRUST BADGES (DUMMY – VERY ATTRACTIVE) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-green-50 rounded-xl p-4 text-center">
+          <p className="text-sm text-gray-600">Experience</p>
+          <p className="font-semibold text-green-700">10+ Years</p>
+        </div>
+
+        <div className="bg-blue-50 rounded-xl p-4 text-center">
+          <p className="text-sm text-gray-600">Quality Rating</p>
+          <p className="font-semibold text-blue-700">★★★★☆</p>
+        </div>
+
+        <div className="bg-yellow-50 rounded-xl p-4 text-center">
+          <p className="text-sm text-gray-600">Buyer Trust</p>
+          <p className="font-semibold text-yellow-700">High</p>
+        </div>
+
+        <div className="bg-purple-50 rounded-xl p-4 text-center">
+          <p className="text-sm text-gray-600">Verified Farm</p>
+          <p className="font-semibold text-purple-700">Yes</p>
+        </div>
+      </div>
+
+      {/* SAVE BUTTON */}
+      <div className="mt-8 text-right">
+        <button
+          className="bg-green-600 hover:bg-green-700
+                     text-white px-6 py-2 rounded-xl
+                     text-sm shadow"
+        >
+          Save Profile
+        </button>
+      </div>
+    </div>
   );
 
 
       default:
-        return null;
+        return <p className="text-gray-600">Coming Soon…</p>;
     }
   };
 
-  /* ---------------- UI LAYOUT ---------------- */
-
+  /* ================= FINAL UI ================= */
   return (
-    <div className="relative min-h-screen flex
-                    bg-gradient-to-br from-green-50 via-white to-yellow-50">
+    <div className="min-h-screen flex relative
+                    bg-gradient-to-br from-green-50 via-white to-green-100">
 
-      {/* LOGO WATERMARK */}
-      <div className="absolute inset-0 flex items-center justify-center
-                      opacity-[0.04] pointer-events-none">
-        <img src={logo} alt="bg" className="w-[520px]" />
+      {/* Soft background glow */}
+      <div className="absolute inset-0 pointer-events-none
+  bg-[radial-gradient(ellipse_at_top,_rgba(34,197,94,0.18),_transparent_55%)]
+" />
+
+
+      {/* MOBILE TOP BAR */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30
+                      bg-white/80 backdrop-blur border-b
+                      flex items-center justify-between px-4 py-3">
+        <button onClick={() => setSidebarOpen(true)}>
+          <Menu />
+        </button>
+        <img src={logo} className="h-7" />
+        <button onClick={() => navigate("/")}>
+          <Home className="text-green-600" />
+        </button>
       </div>
 
+      {/* OVERLAY */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-20 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* SIDEBAR */}
-      <aside className="w-64 bg-white/90 backdrop-blur border-r fixed inset-y-0 z-10">
-        <div className="p-6 border-b">
-          <img src={logo} alt="FrooteX" className="h-8" />
+      <aside
+        className={`fixed md:static top-0 left-0 h-full w-64
+        bg-white/90 backdrop-blur border-r z-30
+        transform transition-transform duration-300
+        ${
+          sidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full md:translate-x-0"
+        }`}
+      >
+        <div className="p-6 border-b flex justify-between items-center">
+          <img src={logo} className="h-8" />
+          <button className="md:hidden" onClick={() => setSidebarOpen(false)}>
+            <X />
+          </button>
         </div>
 
         <nav className="p-4 space-y-1">
           {menu.map(({ name, icon: Icon }) => (
             <button
               key={name}
-              onClick={() => setActive(name)}
-              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm
+              onClick={() => {
+                setActive(name);
+                setSidebarOpen(false);
+              }}
+              className={`w-full flex items-center gap-3
+                px-4 py-2 rounded-xl text-sm transition
                 ${
                   active === name
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-green-100 text-green-700 font-semibold"
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon size={16} />
               {name}
             </button>
           ))}
         </nav>
 
-        <button
-          onClick={() => navigate("/")}
-          className="absolute bottom-6 left-6 flex items-center gap-2
-                     text-sm text-gray-500 hover:text-green-600"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
-        </button>
+        <div className="p-4 border-t">
+          <button
+            onClick={() => navigate("/")}
+            className="w-full flex items-center justify-center gap-2
+                       bg-green-600 text-white py-2 rounded-xl text-sm"
+          >
+            <ArrowLeft size={16} /> Home
+          </button>
+        </div>
       </aside>
 
       {/* MAIN */}
-<main
-  className="flex-1 md:ml-64
-             px-4 sm:px-6 lg:px-10
-             py-6 sm:py-8
-             relative z-10"
->
-  <div
-    className="bg-white/80 backdrop-blur-xl
-               rounded-3xl
-               shadow-xl
-               border border-green-100
-               p-4 sm:p-6 lg:p-10"
-  >
-    {renderContent()}
-  </div>
-</main>
+      <main className="flex-1 pt-16 md:pt-0 p-4 md:p-8 relative z-10">
+        {renderContent()}
+      </main>
 
+      {/* MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 z-50
+                        flex items-center justify-center">
+          <div className="bg-white p-6 rounded-2xl w-96">
+            <h3 className="font-semibold mb-4">
+              {editingId ? "Edit Product" : "Add Product"}
+            </h3>
+
+            <input
+              className="w-full border p-2 rounded mb-2"
+              placeholder="Product Name"
+              value={productForm.name}
+              onChange={(e) =>
+                setProductForm({ ...productForm, name: e.target.value })
+              }
+            />
+            <input
+              className="w-full border p-2 rounded mb-2"
+              placeholder="Quantity"
+              value={productForm.quantity}
+              onChange={(e) =>
+                setProductForm({ ...productForm, quantity: e.target.value })
+              }
+            />
+            <input
+              className="w-full border p-2 rounded mb-2"
+              placeholder="Price"
+              value={productForm.price}
+              onChange={(e) =>
+                setProductForm({ ...productForm, price: e.target.value })
+              }
+            />
+            <input
+              type="file"
+              className="mb-4"
+              onChange={(e) =>
+                setProductForm({ ...productForm, image: e.target.files[0] })
+              }
+            />
+
+            <button
+              onClick={saveProduct}
+              className="w-full bg-green-600 text-white py-2 rounded-xl"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
