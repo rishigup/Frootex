@@ -1,17 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "../firebase/firebase";
 import {
-  Eye,
-  EyeOff,
-  Loader2,
-  ShieldCheck,
-  ArrowLeft,
-} from "lucide-react";
+  createUserWithEmailAndPassword,
+  signInWithPhoneNumber,
+  RecaptchaVerifier,
+} from "firebase/auth";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../firebase/firebase";
+import { Eye, EyeOff, ShieldCheck, ArrowLeft } from "lucide-react";
 
-/* 🔹 Centralized Roles */
+/* 🔹 Roles */
 const ROLES = [
   { value: "Farmer", label: "Farmer" },
   { value: "Buyer", label: "Buyer" },
@@ -23,20 +21,35 @@ const ROLES = [
 export default function Signup() {
   const navigate = useNavigate();
 
+  const [signupType, setSignupType] = useState("phone");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
   const [role, setRole] = useState("Farmer");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const passwordStrength = () => {
-    if (password.length >= 8) return "Strong";
-    if (password.length >= 5) return "Medium";
-    return "Weak";
-  };
+  /* 🔐 reCAPTCHA ref */
+  const recaptchaVerifierRef = useRef(null);
 
-  const handleSignup = async (e) => {
+  /* ✅ Init reCAPTCHA ONCE after mount */
+  useEffect(() => {
+    if (!recaptchaVerifierRef.current) {
+      recaptchaVerifierRef.current = new RecaptchaVerifier(
+        auth,
+        "recaptcha-container",
+        {
+          size: "invisible",
+        }
+      );
+    }
+  }, []);
+
+  /* ================= EMAIL SIGNUP ================= */
+  const handleEmailSignup = async (e) => {
     e.preventDefault();
     if (loading) return;
 
@@ -44,236 +57,229 @@ export default function Signup() {
     setError("");
 
     try {
-      const result = await createUserWithEmailAndPassword(
+      const res = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
 
-      const user = result.user;
-
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        email: user.email,
-        role: role,
+      await setDoc(doc(db, "users", res.user.uid), {
+        uid: res.user.uid,
+        email,
+        role,
+        signupMethod: "email",
         createdAt: serverTimestamp(),
       });
 
-      navigate("/");
+      navigateByRole(role);
     } catch (err) {
-      setError("Unable to create account. Please check your details.");
+      console.error(err);
+      setError("Unable to create account");
+    } finally {
       setLoading(false);
     }
   };
 
+  /* ================= SEND OTP ================= */
+  const sendOTP = async () => {
+    if (!/^\d{10}$/.test(phone)) {
+      return setError("Enter valid 10-digit mobile number");
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const formattedPhone = `+91${phone}`;
+
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        formattedPhone,
+        recaptchaVerifierRef.current
+      );
+
+      window.confirmationResult = confirmation;
+      setOtpSent(true);
+    } catch (err) {
+      console.error(err);
+      setError("OTP send failed. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ================= VERIFY OTP ================= */
+  const verifyOTP = async () => {
+    if (!otp) return setError("Enter OTP");
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await window.confirmationResult.confirm(otp);
+
+      const userRef = doc(db, "users", res.user.uid);
+      const snap = await getDoc(userRef);
+
+      if (!snap.exists()) {
+        await setDoc(userRef, {
+          uid: res.user.uid,
+          phone: res.user.phoneNumber,
+          role,
+          signupMethod: "phone",
+          createdAt: serverTimestamp(),
+        });
+      }
+
+      navigateByRole(role);
+    } catch (err) {
+      console.error(err);
+      setError("Invalid OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const navigateByRole = (role) => {
+    if (role === "Farmer") navigate("/farmer");
+    else if (role === "Buyer") navigate("/buyer");
+    else navigate("/");
+  };
+
   return (
-    <section
-      className="relative min-h-screen flex items-center justify-center px-4
-                 bg-gradient-to-b from-[#FFF7CC] via-[#FFE4C7] to-white"
-    >
-      {/* BACKGROUND BLOBS */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-24 -left-24 h-[360px] w-[360px]
-                        rounded-full bg-yellow-300/40 blur-3xl" />
-        <div className="absolute top-1/3 -right-24 h-[300px] w-[300px]
-                        rounded-full bg-red-400/30 blur-3xl" />
-        <div className="absolute bottom-0 left-1/4 h-[260px] w-[260px]
-                        rounded-full bg-green-400/30 blur-3xl" />
-      </div>
-
-      {/* TEXTURE */}
-      <div className="absolute inset-0
-        bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.10),_transparent_45%)]"
-      />
-
-      <div className="relative w-full max-w-md">
-
-        {/* BACK TO HOME (ANIMATED) */}
-        <Link
-          to="/"
-          className="mb-6 inline-flex items-center gap-2
-                     animate-slide-left
-                     rounded-full
-                     bg-gradient-to-r from-yellow-100 to-green-100
-                     border border-green-200
-                     px-5 py-2 text-sm font-medium
-                     text-green-800
-                     shadow-sm
-                     hover:shadow-md
-                     hover:-translate-y-0.5
-                     transition"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to home
+    <section className="min-h-screen flex justify-center items-center px-4 bg-gradient-to-b from-[#FFF7CC] via-[#FFE4C7] to-white">
+      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
+        <Link to="/" className="flex items-center gap-2 mb-6 text-green-700">
+          <ArrowLeft /> Back to home
         </Link>
 
-        {/* SIGNUP CARD */}
-        <div
-          className="animate-fade-scale
-                     bg-white/90 backdrop-blur
-                     border border-green-200
-                     rounded-2xl shadow-xl
-                     p-8
-                     hover:shadow-2xl
-                     hover:-translate-y-1
-                     transition"
+        <h2 className="text-2xl font-semibold text-center mb-6">
+          Create Account
+        </h2>
+
+        {/* TOGGLE */}
+        <div className="flex mb-4 border rounded-lg overflow-hidden">
+          <button
+            onClick={() => setSignupType("phone")}
+            className={`w-1/2 py-2 ${
+              signupType === "phone"
+                ? "bg-green-600 text-white"
+                : "bg-gray-100"
+            }`}
+          >
+            Phone
+          </button>
+          <button
+            onClick={() => setSignupType("email")}
+            className={`w-1/2 py-2 ${
+              signupType === "email"
+                ? "bg-green-600 text-white"
+                : "bg-gray-100"
+            }`}
+          >
+            Email
+          </button>
+        </div>
+
+        {error && <div className="mb-4 text-red-600">{error}</div>}
+
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          className="w-full mb-4 border p-3 rounded"
         >
-          {/* HEADER */}
-          <div className="mb-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12
-                            items-center justify-center
-                            rounded-xl bg-green-100 text-green-600">
-              🍋
-            </div>
+          {ROLES.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </select>
 
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Create your account
-            </h2>
+        {signupType === "email" ? (
+          <form onSubmit={handleEmailSignup} className="space-y-4">
+            <input
+              type="email"
+              required
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border p-3 rounded"
+            />
 
-            <p className="mt-1 text-base text-gray-700">
-              Join the FrooteX ecosystem
-            </p>
-
-            {/* Brand underline */}
-            <div className="mt-4 h-1 w-16 mx-auto rounded-full
-                            bg-gradient-to-r from-green-500 to-yellow-400" />
-          </div>
-
-          {/* ERROR */}
-          {error && (
-            <div className="mb-4 rounded-md
-                            bg-red-50 border border-red-200
-                            px-4 py-3 text-sm text-red-600">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSignup} className="space-y-5">
-
-            {/* ROLE */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Role
-              </label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="mt-2 w-full rounded-md
-                           border border-gray-300
-                           px-4 py-3 text-base bg-white
-                           focus:border-green-600
-                           focus:ring-green-600"
-              >
-                {ROLES.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* EMAIL */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
+            <div className="relative">
               <input
-                type="email"
+                type={showPassword ? "text" : "password"}
                 required
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-2 w-full rounded-md
-                           border border-gray-300
-                           px-4 py-3 text-base
-                           focus:border-green-600
-                           focus:ring-green-600"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border p-3 rounded pr-10"
               />
-            </div>
-
-            {/* PASSWORD */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-
-              <div className="relative mt-2">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-md
-                             border border-gray-300
-                             px-4 py-3 pr-12 text-base
-                             focus:border-green-600
-                             focus:ring-green-600"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2
-                             text-gray-500 hover:text-gray-700"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-
-              {/* PASSWORD STRENGTH */}
-              <p
-                className={`mt-2 text-sm ${
-                  passwordStrength() === "Strong"
-                    ? "text-green-600"
-                    : passwordStrength() === "Medium"
-                    ? "text-yellow-600"
-                    : "text-red-600"
-                }`}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2"
               >
-                Password strength: {passwordStrength()}
-              </p>
+                {showPassword ? <EyeOff /> : <Eye />}
+              </button>
             </div>
 
-            {/* SUBMIT */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-md
-                         bg-green-600 py-3
-                         text-base font-semibold text-white
-                         hover:bg-green-700 transition
-                         disabled:opacity-60
-                         flex items-center justify-center gap-2"
+              className="w-full bg-green-600 text-white py-3 rounded"
             >
-              {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-              {loading ? "Creating account..." : "Create Account"}
+              Create Account
             </button>
           </form>
-
-          {/* TRUST */}
-          <div className="mt-6 flex items-center justify-center
-                          gap-2 text-sm text-gray-600">
-            <ShieldCheck className="w-4 h-4 text-green-600" />
-            Secure signup powered by Firebase
+        ) : (
+          <div className="space-y-4">
+            {!otpSent ? (
+              <>
+                <input
+                  type="tel"
+                  placeholder="10-digit mobile number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full border p-3 rounded"
+                />
+                <button
+                  onClick={sendOTP}
+                  disabled={loading}
+                  className="w-full bg-green-600 text-white py-3 rounded"
+                >
+                  Send OTP
+                </button>
+              </>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  className="w-full border p-3 rounded"
+                />
+                <button
+                  onClick={verifyOTP}
+                  disabled={loading}
+                  className="w-full bg-green-600 text-white py-3 rounded"
+                >
+                  Verify OTP
+                </button>
+              </>
+            )}
           </div>
+        )}
 
-          {/* FOOTER */}
-          <p className="mt-6 text-center text-sm text-gray-700">
-            Already have an account?{" "}
-            <Link
-              to="/login"
-              className="font-medium text-green-600 hover:text-green-700"
-            >
-              Sign in
-            </Link>
-          </p>
+        <div className="mt-6 text-sm text-center text-gray-600 flex justify-center gap-2">
+          <ShieldCheck className="text-green-600" />
+          Secure signup powered by Firebase
         </div>
       </div>
+
+      {/* 🔴 REQUIRED FOR FIREBASE PHONE AUTH */}
+      <div id="recaptcha-container"></div>
     </section>
   );
 }

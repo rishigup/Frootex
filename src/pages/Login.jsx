@@ -1,11 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   signInWithEmailAndPassword,
   signInWithPhoneNumber,
   RecaptchaVerifier,
 } from "firebase/auth";
 import { auth } from "../firebase/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase/firebase";
 
 import {
   Eye,
@@ -15,14 +17,11 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-/* 🔐 IMPORTANT: production-safe singleton */
-let recaptchaVerifier = null;
-
 export default function Login() {
   const navigate = useNavigate();
 
   /* ================= STATES ================= */
-  const [loginType, setLoginType] = useState("email"); // email | phone
+  const [loginType, setLoginType] = useState("email");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -36,6 +35,41 @@ export default function Login() {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
 
+  /* ================= INIT RECAPTCHA (FIXED) ================= */
+  useEffect(() => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(
+        auth,
+        "recaptcha-container",
+        {
+          size: "invisible",
+          callback: () => {},
+        }
+      );
+    }
+
+    return () => {
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+    };
+  }, []);
+
+  /* ================= ROLE REDIRECT ================= */
+  const redirectByRole = async (user) => {
+    const snap = await getDoc(doc(db, "users", user.uid));
+
+    if (snap.exists()) {
+      const role = snap.data().role;
+      if (role === "Farmer") navigate("/farmer");
+      else if (role === "Buyer") navigate("/buyer");
+      else navigate("/");
+    } else {
+      navigate("/");
+    }
+  };
+
   /* ================= EMAIL LOGIN ================= */
   const handleEmailLogin = async (e) => {
     e.preventDefault();
@@ -45,8 +79,12 @@ export default function Login() {
     setError("");
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate("/");
+      const result = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      await redirectByRole(result.user);
     } catch {
       setError("Invalid email or password");
     } finally {
@@ -54,7 +92,7 @@ export default function Login() {
     }
   };
 
-  /* ================= SEND OTP (PRODUCTION) ================= */
+  /* ================= SEND OTP ================= */
   const sendOTP = async () => {
     if (!phone) {
       setError("Please enter phone number");
@@ -65,21 +103,10 @@ export default function Login() {
     setError("");
 
     try {
-      // 🔐 Create verifier ONLY ONCE (production-safe)
-      if (!recaptchaVerifier) {
-        recaptchaVerifier = new RecaptchaVerifier(
-          "recaptcha-container",
-          {
-            size: "invisible",
-          },
-          auth
-        );
-      }
-
       const confirmationResult = await signInWithPhoneNumber(
         auth,
-        phone, // +91XXXXXXXXXX
-        recaptchaVerifier
+        phone,
+        window.recaptchaVerifier
       );
 
       window.confirmationResult = confirmationResult;
@@ -103,8 +130,8 @@ export default function Login() {
     setError("");
 
     try {
-      await window.confirmationResult.confirm(otp);
-      navigate("/");
+      const result = await window.confirmationResult.confirm(otp);
+      await redirectByRole(result.user);
     } catch {
       setError("Invalid OTP");
     } finally {
@@ -209,7 +236,7 @@ export default function Login() {
             </form>
           )}
 
-          {/* PHONE OTP LOGIN */}
+          {/* PHONE OTP */}
           {loginType === "phone" && (
             <div className="space-y-5">
               {!otpSent ? (
@@ -265,7 +292,7 @@ export default function Login() {
         </div>
       </div>
 
-      {/* 🔐 REQUIRED FOR WEB OTP (PRODUCTION) */}
+      {/* REQUIRED FOR FIREBASE PHONE AUTH */}
       <div id="recaptcha-container"></div>
     </section>
   );
