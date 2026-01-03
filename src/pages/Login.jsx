@@ -1,14 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   signInWithEmailAndPassword,
   signInWithPhoneNumber,
   RecaptchaVerifier,
 } from "firebase/auth";
-import { auth } from "../firebase/firebase";
+import { auth, db } from "../firebase/firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase/firebase";
-
 import {
   Eye,
   EyeOff,
@@ -35,39 +33,74 @@ export default function Login() {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
 
-  /* ================= INIT RECAPTCHA (FIXED) ================= */
+  /* OTP Timer */
+  const [otpTimer, setOtpTimer] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+
+  /* reCAPTCHA */
+  const recaptchaRef = useRef(null);
+
+  /* ================= INIT reCAPTCHA ================= */
   useEffect(() => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(
+    if (!recaptchaRef.current) {
+      recaptchaRef.current = new RecaptchaVerifier(
         auth,
         "recaptcha-container",
-        {
-          size: "invisible",
-          callback: () => {},
-        }
+        { size: "invisible" }
       );
     }
 
     return () => {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null;
-      }
+      recaptchaRef.current?.clear();
+      recaptchaRef.current = null;
     };
   }, []);
+
+  /* ================= OTP TIMER ================= */
+  useEffect(() => {
+    if (!otpSent) return;
+
+    setOtpTimer(60);
+    setCanResend(false);
+
+    const timer = setInterval(() => {
+      setOtpTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setCanResend(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [otpSent]);
+
+  /* ================= ERROR HANDLER ================= */
+  const firebaseError = (code) => {
+    switch (code) {
+      case "auth/user-not-found":
+        return "Account not found";
+      case "auth/wrong-password":
+        return "Incorrect password";
+      case "auth/invalid-phone-number":
+        return "Invalid phone number";
+      case "auth/too-many-requests":
+        return "Too many attempts. Try later";
+      default:
+        return "Something went wrong";
+    }
+  };
 
   /* ================= ROLE REDIRECT ================= */
   const redirectByRole = async (user) => {
     const snap = await getDoc(doc(db, "users", user.uid));
+    const role = snap.exists() ? snap.data().role : null;
 
-    if (snap.exists()) {
-      const role = snap.data().role;
-      if (role === "Farmer") navigate("/farmer");
-      else if (role === "Buyer") navigate("/buyer");
-      else navigate("/");
-    } else {
-      navigate("/");
-    }
+    if (role === "Farmer") navigate("/farmer");
+    else if (role === "Buyer") navigate("/buyer");
+    else navigate("/");
   };
 
   /* ================= EMAIL LOGIN ================= */
@@ -79,14 +112,10 @@ export default function Login() {
     setError("");
 
     try {
-      const result = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      await redirectByRole(result.user);
-    } catch {
-      setError("Invalid email or password");
+      const res = await signInWithEmailAndPassword(auth, email, password);
+      await redirectByRole(res.user);
+    } catch (err) {
+      setError(firebaseError(err.code));
     } finally {
       setLoading(false);
     }
@@ -94,26 +123,23 @@ export default function Login() {
 
   /* ================= SEND OTP ================= */
   const sendOTP = async () => {
-    if (!phone) {
-      setError("Please enter phone number");
-      return;
+    if (!/^\d{10}$/.test(phone)) {
+      return setError("Enter valid 10-digit number");
     }
 
     setLoading(true);
     setError("");
 
     try {
-      const confirmationResult = await signInWithPhoneNumber(
+      const confirmation = await signInWithPhoneNumber(
         auth,
-        phone,
-        window.recaptchaVerifier
+        `+91${phone}`,
+        recaptchaRef.current
       );
-
-      window.confirmationResult = confirmationResult;
+      window.confirmationResult = confirmation;
       setOtpSent(true);
     } catch (err) {
-      console.error(err);
-      setError("Failed to send OTP. Try again.");
+      setError(firebaseError(err.code));
     } finally {
       setLoading(false);
     }
@@ -121,17 +147,14 @@ export default function Login() {
 
   /* ================= VERIFY OTP ================= */
   const verifyOTP = async () => {
-    if (!otp) {
-      setError("Enter OTP");
-      return;
-    }
+    if (!otp) return setError("Enter OTP");
 
     setLoading(true);
     setError("");
 
     try {
-      const result = await window.confirmationResult.confirm(otp);
-      await redirectByRole(result.user);
+      const res = await window.confirmationResult.confirm(otp);
+      await redirectByRole(res.user);
     } catch {
       setError("Invalid OTP");
     } finally {
@@ -139,36 +162,34 @@ export default function Login() {
     }
   };
 
+  /* ================= UI ================= */
   return (
-    <section className="relative min-h-screen flex items-center justify-center px-4 bg-gradient-to-b from-[#FFF7CC] via-[#FFE4C7] to-white">
-      <div className="relative w-full max-w-md">
+    <section className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-b from-[#FFF7CC] via-[#FFE4C7] to-white">
+      <div className="w-full max-w-md">
 
         {/* BACK */}
         <Link
           to="/"
-          className="mb-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-yellow-100 to-green-100 border px-5 py-2 text-sm font-medium text-green-800"
+          className="mb-6 inline-flex items-center gap-2 text-green-700"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to home
+          <ArrowLeft size={18} /> Back to home
         </Link>
 
         {/* CARD */}
-        <div className="bg-white/90 backdrop-blur border rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
 
-          {/* HEADER */}
-          <div className="mb-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-green-100">
-              🍎
-            </div>
-            <h1 className="text-2xl font-semibold">Welcome back</h1>
-            <p className="text-gray-700">Sign in to your FrooteX account</p>
-          </div>
+          <h1 className="text-2xl font-semibold text-center mb-2">
+            Welcome Back
+          </h1>
+          <p className="text-center text-gray-600 mb-6">
+            Login to your account
+          </p>
 
           {/* TOGGLE */}
-          <div className="mb-6 flex rounded-lg overflow-hidden border">
+          <div className="flex mb-4 border rounded-lg overflow-hidden">
             <button
               onClick={() => setLoginType("email")}
-              className={`w-1/2 py-2 text-sm font-medium ${
+              className={`w-1/2 py-2 ${
                 loginType === "email"
                   ? "bg-green-600 text-white"
                   : "bg-gray-100"
@@ -178,7 +199,7 @@ export default function Login() {
             </button>
             <button
               onClick={() => setLoginType("phone")}
-              className={`w-1/2 py-2 text-sm font-medium ${
+              className={`w-1/2 py-2 ${
                 loginType === "phone"
                   ? "bg-green-600 text-white"
                   : "bg-gray-100"
@@ -188,33 +209,32 @@ export default function Login() {
             </button>
           </div>
 
-          {/* ERROR */}
           {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded">
+            <div className="mb-4 text-sm text-red-600 text-center">
               {error}
             </div>
           )}
 
           {/* EMAIL LOGIN */}
           {loginType === "email" && (
-            <form onSubmit={handleEmailLogin} className="space-y-5">
+            <form onSubmit={handleEmailLogin} className="space-y-4">
               <input
                 type="email"
-                required
                 placeholder="Email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border px-4 py-3 rounded-md"
+                className="w-full border p-3 rounded"
               />
 
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
-                  required
                   placeholder="Password"
+                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border px-4 py-3 rounded-md pr-12"
+                  className="w-full border p-3 rounded pr-10"
                 />
                 <button
                   type="button"
@@ -226,9 +246,10 @@ export default function Login() {
               </div>
 
               <button
-                type="submit"
                 disabled={loading}
-                className="w-full bg-green-600 text-white py-3 rounded-md flex justify-center gap-2"
+                className={`w-full py-3 rounded text-white flex justify-center gap-2 ${
+                  loading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
+                }`}
               >
                 {loading && <Loader2 className="animate-spin" />}
                 Sign In
@@ -236,22 +257,22 @@ export default function Login() {
             </form>
           )}
 
-          {/* PHONE OTP */}
+          {/* PHONE LOGIN */}
           {loginType === "phone" && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {!otpSent ? (
                 <>
                   <input
                     type="tel"
-                    placeholder="+91XXXXXXXXXX"
+                    placeholder="10-digit mobile number"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full border px-4 py-3 rounded-md"
+                    className="w-full border p-3 rounded"
                   />
                   <button
                     onClick={sendOTP}
                     disabled={loading}
-                    className="w-full bg-green-600 text-white py-3 rounded-md"
+                    className="w-full bg-green-600 text-white py-3 rounded"
                   >
                     {loading ? "Sending OTP..." : "Send OTP"}
                   </button>
@@ -263,36 +284,48 @@ export default function Login() {
                     placeholder="Enter OTP"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
-                    className="w-full border px-4 py-3 rounded-md"
+                    className="w-full border p-3 rounded"
                   />
                   <button
                     onClick={verifyOTP}
                     disabled={loading}
-                    className="w-full bg-green-600 text-white py-3 rounded-md"
+                    className="w-full bg-green-600 text-white py-3 rounded"
                   >
-                    {loading ? "Verifying..." : "Verify OTP"}
+                    Verify OTP
                   </button>
+
+                  <p className="text-sm text-center text-gray-500">
+                    {canResend ? (
+                      <button
+                        onClick={sendOTP}
+                        className="text-green-600 font-medium"
+                      >
+                        Resend OTP
+                      </button>
+                    ) : (
+                      <>Resend OTP in {otpTimer}s</>
+                    )}
+                  </p>
                 </>
               )}
             </div>
           )}
 
-          {/* TRUST */}
           <div className="mt-6 flex justify-center items-center gap-2 text-sm text-gray-600">
             <ShieldCheck className="w-4 h-4 text-green-600" />
             Secure login powered by Firebase
           </div>
 
           <p className="mt-6 text-center text-sm">
-            New to FrooteX?{" "}
+            New user?{" "}
             <Link to="/signup" className="text-green-600 font-medium">
-              Create an account
+              Create account
             </Link>
           </p>
         </div>
       </div>
 
-      {/* REQUIRED FOR FIREBASE PHONE AUTH */}
+      {/* REQUIRED */}
       <div id="recaptcha-container"></div>
     </section>
   );

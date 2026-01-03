@@ -21,6 +21,7 @@ const ROLES = [
 export default function Signup() {
   const navigate = useNavigate();
 
+  /* ================= STATES ================= */
   const [signupType, setSignupType] = useState("phone");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,21 +33,72 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  /* 🔐 reCAPTCHA ref */
-  const recaptchaVerifierRef = useRef(null);
+  /* OTP Timer */
+  const [otpTimer, setOtpTimer] = useState(60);
+  const [canResend, setCanResend] = useState(false);
 
-  /* ✅ Init reCAPTCHA ONCE after mount */
+  /* reCAPTCHA */
+  const recaptchaRef = useRef(null);
+
+  /* ================= INIT reCAPTCHA ================= */
   useEffect(() => {
-    if (!recaptchaVerifierRef.current) {
-      recaptchaVerifierRef.current = new RecaptchaVerifier(
+    if (!recaptchaRef.current) {
+      recaptchaRef.current = new RecaptchaVerifier(
         auth,
         "recaptcha-container",
-        {
-          size: "invisible",
-        }
+        { size: "invisible" }
       );
     }
+
+    return () => {
+      recaptchaRef.current?.clear();
+      recaptchaRef.current = null;
+    };
   }, []);
+
+  /* ================= OTP TIMER ================= */
+  useEffect(() => {
+    if (!otpSent) return;
+
+    setOtpTimer(60);
+    setCanResend(false);
+
+    const timer = setInterval(() => {
+      setOtpTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setCanResend(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [otpSent]);
+
+  /* ================= PASSWORD STRENGTH ================= */
+  const passwordStrength = () => {
+    if (password.length < 6) return "Weak";
+    if (/[A-Z]/.test(password) && /\d/.test(password)) return "Strong";
+    return "Medium";
+  };
+
+  /* ================= ERROR HANDLER ================= */
+  const firebaseError = (code) => {
+    switch (code) {
+      case "auth/email-already-in-use":
+        return "Email already registered";
+      case "auth/weak-password":
+        return "Password too weak";
+      case "auth/invalid-phone-number":
+        return "Invalid phone number";
+      case "auth/too-many-requests":
+        return "Too many attempts. Try later";
+      default:
+        return "Something went wrong";
+    }
+  };
 
   /* ================= EMAIL SIGNUP ================= */
   const handleEmailSignup = async (e) => {
@@ -73,8 +125,7 @@ export default function Signup() {
 
       navigateByRole(role);
     } catch (err) {
-      console.error(err);
-      setError("Unable to create account");
+      setError(firebaseError(err.code));
     } finally {
       setLoading(false);
     }
@@ -90,19 +141,16 @@ export default function Signup() {
     setError("");
 
     try {
-      const formattedPhone = `+91${phone}`;
-
       const confirmation = await signInWithPhoneNumber(
         auth,
-        formattedPhone,
-        recaptchaVerifierRef.current
+        `+91${phone}`,
+        recaptchaRef.current
       );
 
       window.confirmationResult = confirmation;
       setOtpSent(true);
     } catch (err) {
-      console.error(err);
-      setError("OTP send failed. Try again.");
+      setError(firebaseError(err.code));
     } finally {
       setLoading(false);
     }
@@ -132,25 +180,27 @@ export default function Signup() {
       }
 
       navigateByRole(role);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError("Invalid OTP");
     } finally {
       setLoading(false);
     }
   };
 
+  /* ================= ROLE REDIRECT ================= */
   const navigateByRole = (role) => {
     if (role === "Farmer") navigate("/farmer");
     else if (role === "Buyer") navigate("/buyer");
     else navigate("/");
   };
 
+  /* ================= UI ================= */
   return (
     <section className="min-h-screen flex justify-center items-center px-4 bg-gradient-to-b from-[#FFF7CC] via-[#FFE4C7] to-white">
       <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
+
         <Link to="/" className="flex items-center gap-2 mb-6 text-green-700">
-          <ArrowLeft /> Back to home
+          <ArrowLeft size={18} /> Back to home
         </Link>
 
         <h2 className="text-2xl font-semibold text-center mb-6">
@@ -181,8 +231,13 @@ export default function Signup() {
           </button>
         </div>
 
-        {error && <div className="mb-4 text-red-600">{error}</div>}
+        {error && (
+          <div className="mb-4 text-sm text-red-600 text-center">
+            {error}
+          </div>
+        )}
 
+        {/* ROLE */}
         <select
           value={role}
           onChange={(e) => setRole(e.target.value)}
@@ -195,6 +250,7 @@ export default function Signup() {
           ))}
         </select>
 
+        {/* EMAIL SIGNUP */}
         {signupType === "email" ? (
           <form onSubmit={handleEmailSignup} className="space-y-4">
             <input
@@ -224,15 +280,29 @@ export default function Signup() {
               </button>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-green-600 text-white py-3 rounded"
+            <p
+              className={`text-sm ${
+                passwordStrength() === "Strong"
+                  ? "text-green-600"
+                  : passwordStrength() === "Medium"
+                  ? "text-yellow-600"
+                  : "text-red-600"
+              }`}
             >
-              Create Account
+              Password strength: {passwordStrength()}
+            </p>
+
+            <button
+              disabled={loading}
+              className={`w-full py-3 rounded text-white ${
+                loading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
+              }`}
+            >
+              {loading ? "Creating..." : "Create Account"}
             </button>
           </form>
         ) : (
+          /* PHONE SIGNUP */
           <div className="space-y-4">
             {!otpSent ? (
               <>
@@ -248,7 +318,7 @@ export default function Signup() {
                   disabled={loading}
                   className="w-full bg-green-600 text-white py-3 rounded"
                 >
-                  Send OTP
+                  {loading ? "Sending OTP..." : "Send OTP"}
                 </button>
               </>
             ) : (
@@ -267,6 +337,19 @@ export default function Signup() {
                 >
                   Verify OTP
                 </button>
+
+                <p className="text-sm text-center text-gray-500">
+                  {canResend ? (
+                    <button
+                      onClick={sendOTP}
+                      className="text-green-600 font-medium"
+                    >
+                      Resend OTP
+                    </button>
+                  ) : (
+                    <>Resend OTP in {otpTimer}s</>
+                  )}
+                </p>
               </>
             )}
           </div>
@@ -278,7 +361,7 @@ export default function Signup() {
         </div>
       </div>
 
-      {/* 🔴 REQUIRED FOR FIREBASE PHONE AUTH */}
+      {/* REQUIRED */}
       <div id="recaptcha-container"></div>
     </section>
   );
