@@ -40,20 +40,20 @@ export default function Login() {
   /* reCAPTCHA */
   const recaptchaRef = useRef(null);
 
-  /* ================= INIT reCAPTCHA ================= */
+  /* ================= INIT reCAPTCHA (SAFE) ================= */
   useEffect(() => {
-    if (!recaptchaRef.current) {
-      recaptchaRef.current = new RecaptchaVerifier(
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(
         auth,
         "recaptcha-container",
-        { size: "invisible" }
+        {
+          size: "invisible",
+          callback: () => {},
+        }
       );
     }
 
-    return () => {
-      recaptchaRef.current?.clear();
-      recaptchaRef.current = null;
-    };
+    recaptchaRef.current = window.recaptchaVerifier;
   }, []);
 
   /* ================= OTP TIMER ================= */
@@ -88,6 +88,8 @@ export default function Login() {
         return "Invalid phone number";
       case "auth/too-many-requests":
         return "Too many attempts. Try later";
+      case "auth/invalid-app-credential":
+        return "reCAPTCHA verification failed";
       default:
         return "Something went wrong";
     }
@@ -131,14 +133,20 @@ export default function Login() {
     setError("");
 
     try {
+      const appVerifier = recaptchaRef.current;
+
+      await appVerifier.render(); // ✅ REQUIRED
+
       const confirmation = await signInWithPhoneNumber(
         auth,
         `+91${phone}`,
-        recaptchaRef.current
+        appVerifier
       );
+
       window.confirmationResult = confirmation;
       setOtpSent(true);
     } catch (err) {
+      console.error(err);
       setError(firebaseError(err.code));
     } finally {
       setLoading(false);
@@ -167,7 +175,6 @@ export default function Login() {
     <section className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-b from-[#FFF7CC] via-[#FFE4C7] to-white">
       <div className="w-full max-w-md">
 
-        {/* BACK */}
         <Link
           to="/"
           className="mb-6 inline-flex items-center gap-2 text-green-700"
@@ -175,9 +182,7 @@ export default function Login() {
           <ArrowLeft size={18} /> Back to home
         </Link>
 
-        {/* CARD */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
-
           <h1 className="text-2xl font-semibold text-center mb-2">
             Welcome Back
           </h1>
@@ -220,8 +225,8 @@ export default function Login() {
             <form onSubmit={handleEmailLogin} className="space-y-4">
               <input
                 type="email"
-                placeholder="Email"
                 required
+                placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full border p-3 rounded"
@@ -230,8 +235,8 @@ export default function Login() {
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Password"
                   required
+                  placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full border p-3 rounded pr-10"
@@ -247,9 +252,7 @@ export default function Login() {
 
               <button
                 disabled={loading}
-                className={`w-full py-3 rounded text-white flex justify-center gap-2 ${
-                  loading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
-                }`}
+                className="w-full py-3 rounded text-white bg-green-600 flex justify-center gap-2"
               >
                 {loading && <Loader2 className="animate-spin" />}
                 Sign In
@@ -296,10 +299,7 @@ export default function Login() {
 
                   <p className="text-sm text-center text-gray-500">
                     {canResend ? (
-                      <button
-                        onClick={sendOTP}
-                        className="text-green-600 font-medium"
-                      >
+                      <button onClick={sendOTP} className="text-green-600">
                         Resend OTP
                       </button>
                     ) : (

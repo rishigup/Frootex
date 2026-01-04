@@ -40,20 +40,20 @@ export default function Signup() {
   /* reCAPTCHA */
   const recaptchaRef = useRef(null);
 
-  /* ================= INIT reCAPTCHA ================= */
+  /* ================= INIT reCAPTCHA (SAFE) ================= */
   useEffect(() => {
-    if (!recaptchaRef.current) {
-      recaptchaRef.current = new RecaptchaVerifier(
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(
         auth,
         "recaptcha-container",
-        { size: "invisible" }
+        {
+          size: "invisible",
+          callback: () => {},
+        }
       );
     }
 
-    return () => {
-      recaptchaRef.current?.clear();
-      recaptchaRef.current = null;
-    };
+    recaptchaRef.current = window.recaptchaVerifier;
   }, []);
 
   /* ================= OTP TIMER ================= */
@@ -95,6 +95,8 @@ export default function Signup() {
         return "Invalid phone number";
       case "auth/too-many-requests":
         return "Too many attempts. Try later";
+      case "auth/invalid-app-credential":
+        return "reCAPTCHA verification failed";
       default:
         return "Something went wrong";
     }
@@ -141,15 +143,20 @@ export default function Signup() {
     setError("");
 
     try {
+      const appVerifier = recaptchaRef.current;
+
+      await appVerifier.render(); // ✅ REQUIRED
+
       const confirmation = await signInWithPhoneNumber(
         auth,
         `+91${phone}`,
-        recaptchaRef.current
+        appVerifier
       );
 
       window.confirmationResult = confirmation;
       setOtpSent(true);
     } catch (err) {
+      console.error(err);
       setError(firebaseError(err.code));
     } finally {
       setLoading(false);
@@ -280,23 +287,13 @@ export default function Signup() {
               </button>
             </div>
 
-            <p
-              className={`text-sm ${
-                passwordStrength() === "Strong"
-                  ? "text-green-600"
-                  : passwordStrength() === "Medium"
-                  ? "text-yellow-600"
-                  : "text-red-600"
-              }`}
-            >
+            <p className="text-sm">
               Password strength: {passwordStrength()}
             </p>
 
             <button
               disabled={loading}
-              className={`w-full py-3 rounded text-white ${
-                loading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
-              }`}
+              className="w-full py-3 rounded text-white bg-green-600"
             >
               {loading ? "Creating..." : "Create Account"}
             </button>
@@ -338,12 +335,9 @@ export default function Signup() {
                   Verify OTP
                 </button>
 
-                <p className="text-sm text-center text-gray-500">
+                <p className="text-sm text-center">
                   {canResend ? (
-                    <button
-                      onClick={sendOTP}
-                      className="text-green-600 font-medium"
-                    >
+                    <button onClick={sendOTP} className="text-green-600">
                       Resend OTP
                     </button>
                   ) : (
