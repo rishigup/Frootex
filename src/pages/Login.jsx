@@ -40,22 +40,6 @@ export default function Login() {
   /* reCAPTCHA */
   const recaptchaRef = useRef(null);
 
-  /* ================= INIT reCAPTCHA (SAFE) ================= */
-  useEffect(() => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(
-        auth,
-        "recaptcha-container",
-        {
-          size: "invisible",
-          callback: () => {},
-        }
-      );
-    }
-
-    recaptchaRef.current = window.recaptchaVerifier;
-  }, []);
-
   /* ================= OTP TIMER ================= */
   useEffect(() => {
     if (!otpSent) return;
@@ -105,6 +89,19 @@ export default function Login() {
     else navigate("/");
   };
 
+  /* ================= SETUP reCAPTCHA (SAFE) ================= */
+  const setupRecaptcha = () => {
+    if (!recaptchaRef.current) {
+      recaptchaRef.current = new RecaptchaVerifier(
+        auth,
+        "recaptcha-container",
+        {
+          size: "invisible",
+        }
+      );
+    }
+  };
+
   /* ================= EMAIL LOGIN ================= */
   const handleEmailLogin = async (e) => {
     e.preventDefault();
@@ -114,7 +111,11 @@ export default function Login() {
     setError("");
 
     try {
-      const res = await signInWithEmailAndPassword(auth, email, password);
+      const res = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       await redirectByRole(res.user);
     } catch (err) {
       setError(firebaseError(err.code));
@@ -133,14 +134,12 @@ export default function Login() {
     setError("");
 
     try {
-      const appVerifier = recaptchaRef.current;
-
-      await appVerifier.render(); // ✅ REQUIRED
+      setupRecaptcha();
 
       const confirmation = await signInWithPhoneNumber(
         auth,
         `+91${phone}`,
-        appVerifier
+        recaptchaRef.current
       );
 
       window.confirmationResult = confirmation;
@@ -325,7 +324,7 @@ export default function Login() {
         </div>
       </div>
 
-      {/* REQUIRED */}
+      {/* 🔥 MUST ALWAYS EXIST */}
       <div id="recaptcha-container"></div>
     </section>
   );

@@ -37,24 +37,8 @@ export default function Signup() {
   const [otpTimer, setOtpTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
 
-  /* reCAPTCHA */
+  /* reCAPTCHA ref */
   const recaptchaRef = useRef(null);
-
-  /* ================= INIT reCAPTCHA (SAFE) ================= */
-  useEffect(() => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(
-        auth,
-        "recaptcha-container",
-        {
-          size: "invisible",
-          callback: () => {},
-        }
-      );
-    }
-
-    recaptchaRef.current = window.recaptchaVerifier;
-  }, []);
 
   /* ================= OTP TIMER ================= */
   useEffect(() => {
@@ -102,6 +86,19 @@ export default function Signup() {
     }
   };
 
+  /* ================= SETUP reCAPTCHA (SAFE) ================= */
+  const setupRecaptcha = () => {
+    if (!recaptchaRef.current) {
+      recaptchaRef.current = new RecaptchaVerifier(
+        auth,
+        "recaptcha-container",
+        {
+          size: "invisible",
+        }
+      );
+    }
+  };
+
   /* ================= EMAIL SIGNUP ================= */
   const handleEmailSignup = async (e) => {
     e.preventDefault();
@@ -143,14 +140,12 @@ export default function Signup() {
     setError("");
 
     try {
-      const appVerifier = recaptchaRef.current;
-
-      await appVerifier.render(); // ✅ REQUIRED
+      setupRecaptcha();
 
       const confirmation = await signInWithPhoneNumber(
         auth,
         `+91${phone}`,
-        appVerifier
+        recaptchaRef.current
       );
 
       window.confirmationResult = confirmation;
@@ -355,7 +350,7 @@ export default function Signup() {
         </div>
       </div>
 
-      {/* REQUIRED */}
+      {/* 🔥 MUST ALWAYS BE PRESENT */}
       <div id="recaptcha-container"></div>
     </section>
   );
