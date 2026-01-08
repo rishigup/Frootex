@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage"; // ✅ ADD THIS
 
 const firebaseConfig = {
   apiKey: "AIzaSyB3AMsMO7zwtavrG3dPr1zI9iWORAlWs8A",
@@ -11,10 +12,11 @@ const firebaseConfig = {
   appId: "1:152260981218:web:0d28584a98424e0fdd09bb",
 };
 
-// 🔒 important: SINGLE initialization
+// 🔒 SINGLE initialization (correct)
 const app = !getApps().length
   ? initializeApp(firebaseConfig)
   : getApp();
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app); // ✅ THIS FIXES EVERYTHING
