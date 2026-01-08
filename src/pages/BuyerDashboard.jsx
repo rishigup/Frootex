@@ -245,9 +245,7 @@ export default function BuyerDashboard() {
   );
 
 
-
-      /* ================= ORDERS ================= */
-      case "My Orders":
+case "My Orders": {
   const orders = [
     {
       id: "ORD-3021",
@@ -282,21 +280,24 @@ export default function BuyerDashboard() {
   ];
 
   const statusColor = (status) => {
-    if (status === "Pending") return "bg-yellow-100 text-yellow-700";
-    if (status === "In Transit") return "bg-blue-100 text-blue-700";
-    return "bg-green-100 text-green-700";
+    switch (status) {
+      case "Pending":
+        return "bg-yellow-100 text-yellow-700";
+      case "In Transit":
+        return "bg-blue-100 text-blue-700";
+      case "Completed":
+        return "bg-green-100 text-green-700";
+      default:
+        return "bg-gray-100 text-gray-600";
+    }
   };
 
   return (
     <>
       {/* ===== HEADER ===== */}
-      <div className="flex flex-col md:flex-row
-                      md:items-center md:justify-between
-                      gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-gray-800">
-            My Orders
-          </h2>
+          <h2 className="text-3xl font-bold text-gray-800">My Orders</h2>
           <p className="text-sm text-gray-500">
             Track your purchases & deliveries
           </p>
@@ -310,93 +311,51 @@ export default function BuyerDashboard() {
         </select>
       </div>
 
-      {/* ===== ORDER LIST ===== */}
-      <div className="space-y-6">
+      {/* ===== ORDERS LIST ===== */}
+      <div className="space-y-4">
         {orders.map((order) => (
           <div
             key={order.id}
-            className="bg-white rounded-3xl shadow-md
-                       hover:shadow-xl transition p-6"
+            className="bg-white rounded-2xl p-5 shadow-sm border"
           >
-            {/* TOP */}
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="font-semibold text-lg text-gray-800">
-                  Order #{order.id}
-                </h3>
-                <p className="text-sm text-gray-500">
-                  Farmer: {order.farmer}
-                </p>
-              </div>
-
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-semibold text-gray-800">
+                {order.product}
+              </h3>
               <span
-                className={`text-xs px-4 py-1.5 rounded-full font-medium
-                ${statusColor(order.status)}`}
+                className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(
+                  order.status
+                )}`}
               >
                 {order.status}
               </span>
             </div>
 
-            {/* DETAILS */}
-            <div className="grid sm:grid-cols-3 gap-4 text-sm text-gray-600">
-              <p>
-                <span className="font-medium">Product:</span>{" "}
-                {order.product}
-              </p>
-              <p>
-                <span className="font-medium">Quantity:</span>{" "}
-                {order.qty} kg
-              </p>
-              <p>
-                <span className="font-medium">Price:</span>{" "}
-                ₹{order.price}/kg
-              </p>
+            <p className="text-sm text-gray-500">
+              Farmer: {order.farmer}
+            </p>
+
+            <div className="flex justify-between text-sm mt-2">
+              <span>Qty: {order.qty} kg</span>
+              <span>₹{order.price}/kg</span>
+              <span>{order.date}</span>
             </div>
 
-            {/* PROGRESS */}
-            <div className="mt-5">
-              <div className="h-2 bg-gray-200 rounded-full">
-                <div
-                  className={`h-full rounded-full
-                    ${
-                      order.status === "Completed"
-                        ? "bg-green-500"
-                        : order.status === "In Transit"
-                        ? "bg-blue-500"
-                        : "bg-yellow-500"
-                    }`}
-                  style={{ width: `${order.progress}%` }}
-                />
-              </div>
-
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
-                <span>Ordered</span>
-                <span>Shipped</span>
-                <span>Delivered</span>
-              </div>
-            </div>
-
-            {/* FOOTER */}
-            <div className="flex justify-between items-center mt-5">
-              <p className="text-xs text-gray-400">
-                {order.status === "Completed"
-                  ? `Delivered on ${order.date}`
-                  : `Ordered on ${order.date}`}
-              </p>
-
-              <button className="text-sm text-green-600
-                                 hover:text-green-700 font-medium">
-                View Details →
-              </button>
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+              <div
+                className="bg-green-500 h-2 rounded-full"
+                style={{ width: `${order.progress}%` }}
+              />
             </div>
           </div>
         ))}
       </div>
     </>
   );
+}
 
 
-      /* ================= PROFILE ================= */
       case "Profile":
   return (
     <div className="max-w-4xl mx-auto
